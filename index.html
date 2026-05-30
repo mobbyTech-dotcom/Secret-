@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recorder</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 0; padding: 0;
+            background-color: #1a1a1a;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            padding: 20px;
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+        }
+        video {
+            width: 100%;
+            border-radius: 8px;
+            background-color: #000;
+            margin-bottom: 20px;
+        }
+        .controls button {
+            padding: 12px 20px;
+            margin: 5px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #startBtn { background-color: #4CAF50; color: white; }
+        #stopBtn { background-color: #f44336; color: white; display: none; }
+        #blackScreenBtn { background-color: #2196F3; color: white; display: none; }
+
+        #blackOverlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background-color: #000;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>เครื่องมือบันทึกวิดีโอ</h2>
+    <video id="preview" autoplay muted playsinline></video>
+    <div class="controls">
+        <button id="startBtn">▶ เริ่มบันทึก</button>
+        <button id="blackScreenBtn">⬛ จอดำ</button>
+        <button id="stopBtn">⏹ หยุด</button>
+    </div>
+</div>
+
+<div id="blackOverlay"></div>
+
+<script>
+    let mediaRecorder, recordedChunks = [], stream, wakeLock = null;
+    let holdTimer = null, holdInterval = null;
+
+    const preview = document.getElementById('preview');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const blackScreenBtn = document.getElementById('blackScreenBtn');
+    const blackOverlay = document.getElementById('blackOverlay');
+
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator)
+                wakeLock = await navigator.wakeLock.request('screen');
+        } catch (err) {}
+    }
+
+    function releaseWakeLock() {
+        if (wakeLock) { wakeLock.release(); wakeLock = null; }
+    }
+
+    document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible' && mediaRecorder?.state === 'recording')
+            await requestWakeLock();
+    });
+
+    function enterBlackScreen() {
+        preview.srcObject = null; // ตัด stream ออกจาก video — ไม่เปลืองแบต
+        blackOverlay.style.display = 'block';
+    }
+
+    function exitBlackScreen() {
+        if (stream) preview.srcObject = stream;
+        blackOverlay.style.display = 'none';
+    }
+
+    // ── เริ่มบันทึก ────────────────────────────────────
+    startBtn.addEventListener('click', async () => {
+        try {
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "user" },
+                audio: true
+            });
+
+            preview.srcObject = stream;
+
+            let options = {}, extension = 'mp4';
+            if (MediaRecorder.isTypeSupported('video/mp4')) {
+                options = { mimeType: 'video/mp4' };
+            } else if (MediaRecorder.isTypeSupported('video/webm; codecs=h264')) {
+                options = { mimeType: 'video/webm; codecs=h264' }; extension = 'webm';
+            } else if (MediaRecorder.isTypeSupported('video/webm')) {
+                options = { mimeType: 'video/webm' }; extension = 'webm';
+            }
+
+            mediaRecorder = new MediaRecorder(stream, options);
+            recordedChunks = [];
+
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) recordedChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: options.mimeType || 'video/mp4' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `Record_${Date.now()}.${extension}`;
+                document.body.appendChild(a);
+                a.click();
+                URL.revokeObjectURL(url);
+                a.remove();
+            };
+
+            mediaRecorder.start(1000);
+            await requestWakeLock();
+
+            startBtn.style.display = 'none';
+            stopBtn.style.display = 'inline-block';
+            blackScreenBtn.style.display = 'inline-block';
+
+            // เข้าจอดำอัตโนมัติหลัง 3 วิ
+            setTimeout(() => enterBlackScreen(), 3000);
+
+        } catch (err) {
+            alert('ไม่สามารถเข้าถึงกล้องได้: ' + err.message);
+        }
+    });
+
+    // ── หยุดบันทึก ─────────────────────────────────────
+    stopBtn.addEventListener('click', () => {
+        exitBlackScreen();
+        mediaRecorder.stop();
+        stream.getTracks().forEach(t => t.stop());
+        releaseWakeLock();
+
+        startBtn.style.display = 'inline-block';
+        stopBtn.style.display = 'none';
+        blackScreenBtn.style.display = 'none';
+    });
+
+    blackScreenBtn.addEventListener('click', () => enterBlackScreen());
+
+    // ── ออกจากจอดำ: กดค้าง 2 วิ (ไม่มี UI ให้เห็น) ───
+    blackOverlay.addEventListener('pointerdown', () => {
+        holdTimer = setTimeout(() => exitBlackScreen(), 2000);
+    });
+    blackOverlay.addEventListener('pointerup', () => clearTimeout(holdTimer));
+    blackOverlay.addEventListener('pointerleave', () => clearTimeout(holdTimer));
+</script>
+</body>
+</html>
