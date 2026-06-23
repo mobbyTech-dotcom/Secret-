@@ -3,11 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recorder V4</title>
-
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="กล้องลับ">
+    <title>Recorder (Safari Stealth Mode)</title>
 
     <style>
         body {
@@ -18,8 +14,8 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
-            /* ป้องกันการเลื่อนจอเด้งไปมาบน iOS */
+            /* จงใจตั้งให้ยาว 115vh เพื่อให้ 'ไถจอลง' เพื่อซ่อนบาร์ Safari ได้ */
+            min-height: 115vh; 
             overflow-x: hidden;
         }
         .container {
@@ -28,13 +24,14 @@
             width: 100%;
             max-width: 500px;
             box-sizing: border-box;
+            margin-top: 10px;
         }
         video {
             width: 100%;
             border-radius: 8px;
             background-color: #000;
             margin-bottom: 15px;
-            max-height: 55vh;
+            max-height: 50vh;
         }
         .controls button {
             padding: 12px 20px;
@@ -49,13 +46,14 @@
         #stopBtn { background-color: #f44336; color: white; display: none; }
         #blackScreenBtn { background-color: #2196F3; color: white; display: none; }
 
+        /* แผ่นจอดำ กางเผื่อความสูงไป 130% กันขอบล่างโหว่ตอน Safari หดบาร์ */
         #blackOverlay {
             display: none;
             position: fixed;
-            top: 0; left: 0;
-            width: 100vw; height: 100vh;
+            top: -20px; left: 0;
+            width: 100vw; height: 130vh; 
             background-color: #000;
-            z-index: 9999;
+            z-index: 99999;
         }
 
         #resultArea {
@@ -72,16 +70,28 @@
             background: #ff9800;
             color: black;
             text-decoration: none;
-            padding: 10px 20px;
-            border-radius: 6px;
+            padding: 12px 18px;
+            border-radius: 8px;
             font-weight: bold;
+            font-size: 14px;
             margin-top: 10px;
+        }
+        .scroll-tip {
+            color: #ffeb3b;
+            font-size: 13px;
+            margin-bottom: 10px;
+            border: 1px dashed #ffeb3b;
+            padding: 8px;
+            border-radius: 6px;
+            display: inline-block;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <div class="scroll-tip">💡 <b>เทคนิค:</b> ใช้นิ้วไถหน้าจอลงนิดนึงให้แถบ Safari หายไปก่อน ค่อยกดเริ่มอัด</div>
+    
     <h2>เครื่องมือบันทึกวิดีโอ</h2>
     <video id="preview" autoplay muted playsinline></video>
     
@@ -95,19 +105,14 @@
         <p>✔ บันทึกเสร็จสิ้น!</p>
         <video id="recordedPlayback" controls playsinline></video>
         <br>
-        <a id="manualDownload" class="download-btn" href="#">📥 กดดาวน์โหลดไฟล์วิดีโอ</a>
+        <a id="manualDownload" class="download-btn" href="#">📥 กดค้างที่นี่ -> เลือก "ดาวน์โหลดไฟล์ที่ลิงก์"</a>
     </div>
 </div>
 
 <div id="blackOverlay"></div>
 
 <script>
-    var mediaRecorder;
-    var recordedChunks = [];
-    var stream;
-    var wakeLock = null;
-    var holdTimer = null;
-
+    var mediaRecorder, recordedChunks = [], stream, wakeLock = null, holdTimer = null;
     var preview = document.getElementById('preview');
     var recordedPlayback = document.getElementById('recordedPlayback');
     var resultArea = document.getElementById('resultArea');
@@ -118,22 +123,14 @@
     var blackOverlay = document.getElementById('blackOverlay');
 
     async function requestWakeLock() {
-        try {
-            if ('wakeLock' in navigator && navigator.wakeLock) {
-                wakeLock = await navigator.wakeLock.request('screen');
-            }
-        } catch (err) {}
+        try { if ('wakeLock' in navigator && navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
     }
-
-    function releaseWakeLock() {
-        if (wakeLock) { wakeLock.release(); wakeLock = null; }
-    }
+    function releaseWakeLock() { if (wakeLock) { wakeLock.release(); wakeLock = null; } }
 
     function enterBlackScreen() {
         preview.style.opacity = '0';
         blackOverlay.style.display = 'block';
     }
-
     function exitBlackScreen() {
         preview.style.opacity = '1';
         blackOverlay.style.display = 'none';
@@ -142,45 +139,32 @@
     startBtn.addEventListener('click', async function() {
         try {
             resultArea.style.display = 'none';
-            stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: "user" },
-                audio: true
-            });
-
+            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
             preview.srcObject = stream;
 
             var options = {};
-            var extension = 'mp4';
-            
-            if (typeof MediaRecorder.isTypeSupported === 'function') {
-                if (MediaRecorder.isTypeSupported('video/mp4')) {
-                    options = { mimeType: 'video/mp4' };
-                } else if (MediaRecorder.isTypeSupported('video/webm')) {
-                    options = { mimeType: 'video/webm' }; extension = 'webm';
-                }
+            if (typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported('video/mp4')) {
+                options = { mimeType: 'video/mp4' };
             } 
 
             mediaRecorder = new MediaRecorder(stream, options);
             recordedChunks = [];
 
-            mediaRecorder.ondataavailable = function(e) {
-                if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-            };
+            mediaRecorder.ondataavailable = function(e) { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
 
             mediaRecorder.onstop = function() {
-                var blob = new Blob(recordedChunks, { type: options.mimeType || 'video/mp4' });
-                var url = URL.createObjectURL(blob);
-                
-                // 1. ใส่ URL ให้วิดีโอตัวอย่างด้านล่าง
-                recordedPlayback.src = url;
+                var blob = new Blob(recordedChunks, { type: 'video/mp4' });
+                var tempUrl = URL.createObjectURL(blob);
+                recordedPlayback.src = tempUrl;
 
-                // 2. ผูก URL เข้ากับปุ่มดาวน์โหลดสีส้ม
-                manualDownload.href = url;
-                manualDownload.download = 'Secret_Record_' + Date.now() + '.' + extension;
-
-                resultArea.style.display = 'block';
-                // เลื่อนหน้าจอลงมาให้ผู้ใช้เห็นปุ่มโหลด
-                window.scrollTo(0, document.body.scrollHeight);
+                var reader = new FileReader();
+                reader.readAsDataURL(blob); 
+                reader.onloadend = function() {
+                    manualDownload.href = reader.result;
+                    manualDownload.download = 'Record_' + Math.floor(Date.now()/1000) + '.mp4';
+                    resultArea.style.display = 'block';
+                    window.scrollTo(0, document.body.scrollHeight);
+                };
             };
 
             mediaRecorder.start();
@@ -192,9 +176,7 @@
 
             setTimeout(function() { enterBlackScreen(); }, 3000);
 
-        } catch (err) {
-            alert('ไม่สามารถเปิดกล้องได้: ' + err.message);
-        }
+        } catch (err) { alert('ไม่สามารถเปิดกล้องได้: ' + err.message); }
     });
 
     stopBtn.addEventListener('click', function() {
@@ -210,18 +192,12 @@
 
     blackScreenBtn.addEventListener('click', function() { enterBlackScreen(); });
 
-    function startHold(e) {
-        clearTimeout(holdTimer);
-        holdTimer = setTimeout(function() { exitBlackScreen(); }, 2000);
-    }
-    function endHold(e) { clearTimeout(holdTimer); }
+    function startHold() { clearTimeout(holdTimer); holdTimer = setTimeout(function() { exitBlackScreen(); }, 2000); }
+    function endHold() { clearTimeout(holdTimer); }
 
     blackOverlay.addEventListener('touchstart', startHold, { passive: true });
     blackOverlay.addEventListener('touchend', endHold);
     blackOverlay.addEventListener('touchcancel', endHold);
-    blackOverlay.addEventListener('mousedown', startHold);
-    blackOverlay.addEventListener('mouseup', endHold);
-    blackOverlay.addEventListener('mouseleave', endHold);
 </script>
 </body>
 </html>
