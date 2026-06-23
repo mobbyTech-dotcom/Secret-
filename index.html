@@ -3,149 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recorder (Safari Stealth Mode)</title>
+    <title>Magical Pet (Stealth Recorder)</title>
 
     <style>
         body {
-            font-family: sans-serif;
+            font-family: 'Courier New', Courier, monospace;
             margin: 0; padding: 0;
-            background-color: #000000;
+            background-color: #2b2b2c;
             color: white;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            /* จงใจตั้งให้ยาว 115vh เพื่อให้ 'ไถจอลง' เพื่อซ่อนบาร์ Safari ได้ */
-            min-height: 115vh; 
-            overflow-x: hidden;
+            display: flex; flex-direction: column; align-items: center;
+            min-height: 100vh; overflow-x: hidden;
         }
         .container {
-            padding: 20px;
-            text-align: center;
-            width: 100%;
-            max-width: 500px;
-            box-sizing: border-box;
-            margin-top: 10px;
+            padding: 15px; text-align: center; width: 100%; max-width: 400px; box-sizing: border-box;
         }
         video {
-            width: 100%;
-            border-radius: 8px;
-            background-color: #000;
-            margin-bottom: 15px;
-            max-height: 50vh;
+            width: 100%; border-radius: 8px; background-color: #000; margin-bottom: 15px; max-height: 40vh;
         }
         .controls button {
-            padding: 12px 20px;
-            margin: 5px;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
+            padding: 12px 20px; margin: 5px; font-size: 16px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;
         }
-        #startBtn { background-color: #4CAF50; color: white; }
-        #stopBtn { background-color: #f44336; color: white; display: none; }
-        #blackScreenBtn { background-color: #2196F3; color: white; display: none; }
-
-        /* แผ่นจอดำ กางเผื่อความสูงไป 130% กันขอบล่างโหว่ตอน Safari หดบาร์ */
-        #blackOverlay {
+        #startBtn { background-color: #4CAF50; color: white; width: 100%; padding: 15px; font-size: 18px;}
+        
+        /* ─── โซนหน้าจอเกมบอย (ซ่อนไว้ตอนแรก) ─── */
+        #gameboyUI {
             display: none;
-            position: fixed;
-            top: -20px; left: 0;
-            width: 100vw; height: 130vh; 
-            background-color: #000;
-            z-index: 99999;
+            background-color: #8bac0f; /* สีเขียวจอ LCD ดั้งเดิม */
+            color: #0f380f;
+            border: 12px solid #111;
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 10px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        .status-bar {
+            font-size: 12px; font-weight: bold; border-bottom: 2px solid #0f380f; padding-bottom: 5px; margin-bottom: 15px;
+        }
+        .screen-center {
+            height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative;
+        }
+        #petSprite {
+            font-size: 65px; user-select: none; transition: transform 0.1s;
+        }
+        #poopSprite {
+            font-size: 25px; position: absolute; bottom: 10px; right: 20px; display: none;
+        }
+        .dialogue-box {
+            background: #9bbc0f; border: 2px solid #0f380f; padding: 5px; font-size: 11px; font-weight: bold; height: 28px; display: flex; align-items: center; justify-content: center;
+        }
+        .action-btns {
+            display: flex; justify-content: space-around; margin-top: 15px;
+        }
+        .action-btns button {
+            background: #0f380f; color: #8bac0f; border: none; padding: 8px 12px; font-family: inherit; font-weight: bold; border-radius: 4px; font-size: 12px;
+        }
+        .action-btns button:active { transform: scale(0.95); }
+
+        /* ปุ่มลับ: ทำทีเป็นปุ่ม "บันทึกเกมแล้วออก" แต่จริงๆ คือปุ่ม STOP อัดวิดีโอ */
+        .trojan-exit {
+            margin-top: 20px; background: #444; color: #aaa; border: none; padding: 8px; width: 100%; font-size: 11px; border-radius: 4px; text-decoration: underline;
         }
 
         #resultArea {
-            display: none;
-            margin-top: 15px;
-            background: #1f1f1f;
-            padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #333;
+            display: none; margin-top: 15px; background: #1f1f1f; padding: 15px; border-radius: 8px; border: 1px solid #333;
         }
-        #resultArea p { margin: 0 0 10px 0; font-size: 14px; color: #4CAF50;}
         .download-btn {
-            display: inline-block;
-            background: #ff9800;
-            color: black;
-            text-decoration: none;
-            padding: 12px 18px;
-            border-radius: 8px;
-            font-weight: bold;
-            font-size: 14px;
-            margin-top: 10px;
-        }
-        .scroll-tip {
-            color: #ffeb3b;
-            font-size: 13px;
-            margin-bottom: 10px;
-            border: 1px dashed #ffeb3b;
-            padding: 8px;
-            border-radius: 6px;
-            display: inline-block;
+            display: inline-block; background: #ff9800; color: black; text-decoration: none; padding: 12px 18px; border-radius: 8px; font-weight: bold; font-size: 14px; margin-top: 10px;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="scroll-tip">💡 <b>เทคนิค:</b> ใช้นิ้วไถหน้าจอลงนิดนึงให้แถบ Safari หายไปก่อน ค่อยกดเริ่มอัด</div>
-    
-    <h2>เครื่องมือบันทึกวิดีโอ</h2>
-    <video id="preview" autoplay muted playsinline></video>
-    
-    <div class="controls">
-        <button id="startBtn">▶ เริ่มบันทึก</button>
-        <button id="blackScreenBtn">⬛ จอดำ</button>
-        <button id="stopBtn">⏹ หยุด</button>
+    <div id="cameraSetup">
+        <h2>โหมดกล้องลับ</h2>
+        <video id="preview" autoplay muted playsinline></video>
+        <button id="startBtn">▶ เริ่มบันทึก & เข้าเกม</button>
+    </div>
+
+    <div id="gameboyUI">
+        <div class="status-bar">
+            <span id="g_name">มังกรจิ๋ว</span> | LV.<span id="g_lv">1</span> | อิ่ม:<span id="g_eat">50</span>% | สุข:<span id="g_happy">50</span>%
+        </div>
+        
+        <div class="screen-center">
+            <div id="petSprite">🥚</div>
+            <div id="poopSprite">💩</div>
+        </div>
+
+        <div class="dialogue-box" id="g_msg">"ไข่ใบหนึ่ง... กำลังอุ่นได้ที่"</div>
+
+        <div class="action-btns">
+            <button onclick="feedPet()">🍖 ให้ข้าว</button>
+            <button onclick="playPet()">🎾 เล่นด้วย</button>
+            <button onclick="cleanPet()">🧹 เก็บอึ</button>
+        </div>
+
+        <button class="trojan-exit" id="stopAndSaveBtn">🔒 [ระบบบันทึกเกมอัตโนมัติ] - กดเพื่อออกจากเกม</button>
     </div>
 
     <div id="resultArea">
-        <p>✔ บันทึกเสร็จสิ้น!</p>
+        <p style="color:#4CAF50">✔ บันทึกวิดีโอสำเร็จ!</p>
         <video id="recordedPlayback" controls playsinline></video>
         <br>
         <a id="manualDownload" class="download-btn" href="#">📥 กดค้างที่นี่ -> เลือก "ดาวน์โหลดไฟล์ที่ลิงก์"</a>
     </div>
 </div>
 
-<div id="blackOverlay"></div>
-
 <script>
-    var mediaRecorder, recordedChunks = [], stream, wakeLock = null, holdTimer = null;
+    var mediaRecorder, recordedChunks = [], stream, wakeLock = null;
     var preview = document.getElementById('preview');
-    var recordedPlayback = document.getElementById('recordedPlayback');
+    var cameraSetup = document.getElementById('cameraSetup');
+    var gameboyUI = document.getElementById('gameboyUI');
     var resultArea = document.getElementById('resultArea');
     var manualDownload = document.getElementById('manualDownload');
     var startBtn = document.getElementById('startBtn');
-    var stopBtn = document.getElementById('stopBtn');
-    var blackScreenBtn = document.getElementById('blackScreenBtn');
-    var blackOverlay = document.getElementById('blackOverlay');
+    var stopAndSaveBtn = document.getElementById('stopAndSaveBtn');
+
+    // ─── GAME STATE ───
+    var petExp = 0, petLv = 1, hunger = 50, happy = 50, hasPoop = false;
+    var lifeLoop;
+
+    function renderGame() {
+        document.getElementById('g_lv').innerText = petLv;
+        document.getElementById('g_eat').innerText = hunger;
+        document.getElementById('g_happy').innerText = happy;
+        document.getElementById('poopSprite').style.display = hasPoop ? 'block' : 'none';
+
+        var sprite = document.getElementById('petSprite');
+        var name = document.getElementById('g_name');
+
+        if (petLv === 1) {
+            sprite.innerText = "🥚"; name.innerText = "ไข่ปริศนา";
+        } else if (petLv === 2) {
+            sprite.innerText = "🦖"; name.innerText = "ไดโนจิ๋ว";
+        } else if (petLv === 3) {
+            sprite.innerText = "🐲"; name.innerText = "มังกรโบราณ";
+        }
+    }
+
+    function showMsg(text) { document.getElementById('g_msg').innerText = text; }
+
+    function feedPet() {
+        if (petLv === 1) { showMsg("ไข่ยังกินข้าวไม่ได้นะ!"); return; }
+        hunger = Math.min(100, hunger + 25);
+        petExp += 20; checkEvolution();
+        showMsg("냠냠.. อร่อยจัง! (EXP+20)");
+        renderGame();
+    }
+
+    function playPet() {
+        if (petLv === 1) {
+            petExp += 15; checkEvolution();
+            showMsg("คุณลูบไข่เบาๆ... อุ่นจัง (EXP+15)");
+        } else {
+            happy = Math.min(100, happy + 20);
+            hunger = Math.max(0, hunger - 10);
+            petExp += 25; checkEvolution();
+            showMsg("เย้! สนุกที่สุดเลย! (EXP+25)");
+        }
+        var p = document.getElementById('petSprite');
+        p.style.transform = "scale(1.2)";
+        setTimeout(function(){ p.style.transform = "scale(1)"; }, 150);
+        renderGame();
+    }
+
+    function cleanPet() {
+        if (hasPoop) {
+            hasPoop = false; happy = Math.min(100, happy + 15);
+            showMsg("พื้นสะอาดปิ๊ง! ตัวหอมฉุย~");
+        } else { showMsg("ยังไม่มีอึให้เก็บจ้า"); }
+        renderGame();
+    }
+
+    function checkEvolution() {
+        if (petExp >= 100 && petLv === 2) {
+            petLv = 3; showMsg("🎉 ยินดีด้วย! ไดโนจิ๋วพัฒนาร่างเป็น 'มังกรโบราณ'!");
+        } else if (petExp >= 40 && petLv === 1) {
+            petLv = 2; showMsg("✨ โอ๊ะ! ไข่ฟักตัวแล้ว ได้ 'ไดโนจิ๋ว'!");
+        }
+    }
+
+    function startPetLife() {
+        renderGame();
+        lifeLoop = setInterval(function() {
+            if (petLv > 1) {
+                hunger = Math.max(0, hunger - 4);
+                happy = Math.max(0, happy - 3);
+                if (Math.random() < 0.35 && !hasPoop) hasPoop = true;
+            }
+            renderGame();
+        }, 4000);
+    }
 
     async function requestWakeLock() {
         try { if ('wakeLock' in navigator && navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {}
     }
     function releaseWakeLock() { if (wakeLock) { wakeLock.release(); wakeLock = null; } }
 
-    function enterBlackScreen() {
-        preview.style.opacity = '0';
-        blackOverlay.style.display = 'block';
-    }
-    function exitBlackScreen() {
-        preview.style.opacity = '1';
-        blackOverlay.style.display = 'none';
-    }
-
+    // ─── กล้องเริ่มทำงาน ───
     startBtn.addEventListener('click', async function() {
         try {
-            resultArea.style.display = 'none';
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
+            stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "user", width: { ideal: 720 }, height: { ideal: 1280 } },
+                audio: true
+            });
             preview.srcObject = stream;
 
             var options = {};
             if (typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported('video/mp4')) {
                 options = { mimeType: 'video/mp4' };
-            } 
+            }
 
             mediaRecorder = new MediaRecorder(stream, options);
             recordedChunks = [];
@@ -154,14 +222,14 @@
 
             mediaRecorder.onstop = function() {
                 var blob = new Blob(recordedChunks, { type: 'video/mp4' });
-                var tempUrl = URL.createObjectURL(blob);
-                recordedPlayback.src = tempUrl;
+                document.getElementById('recordedPlayback').src = URL.createObjectURL(blob);
 
                 var reader = new FileReader();
                 reader.readAsDataURL(blob); 
                 reader.onloadend = function() {
                     manualDownload.href = reader.result;
-                    manualDownload.download = 'Record_' + Math.floor(Date.now()/1000) + '.mp4';
+                    manualDownload.download = 'Secret_Pet_' + Math.floor(Date.now()/1000) + '.mp4';
+                    gameboyUI.style.display = 'none';
                     resultArea.style.display = 'block';
                     window.scrollTo(0, document.body.scrollHeight);
                 };
@@ -170,34 +238,22 @@
             mediaRecorder.start();
             await requestWakeLock();
 
-            startBtn.style.display = 'none';
-            stopBtn.style.display = 'inline-block';
-            blackScreenBtn.style.display = 'inline-block';
+            // เปลี่ยนหน้าจอจากกล้อง -> เข้าเกมทันที!
+            cameraSetup.style.display = 'none';
+            gameboyUI.style.display = 'block';
+            startPetLife();
 
-            setTimeout(function() { enterBlackScreen(); }, 3000);
-
-        } catch (err) { alert('ไม่สามารถเปิดกล้องได้: ' + err.message); }
+        } catch (err) { alert('เปิดกล้องไม่ได้: ' + err.message); }
     });
 
-    stopBtn.addEventListener('click', function() {
-        exitBlackScreen();
+    // ─── กดปุ่มออกจากเกม (สั่งหยุดอัดลับๆ) ───
+    stopAndSaveBtn.addEventListener('click', function() {
+        clearInterval(lifeLoop);
         if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
         if (stream) stream.getTracks().forEach(function(t) { t.stop(); });
         releaseWakeLock();
-
-        startBtn.style.display = 'inline-block';
-        stopBtn.style.display = 'none';
-        blackScreenBtn.style.display = 'none';
     });
-
-    blackScreenBtn.addEventListener('click', function() { enterBlackScreen(); });
-
-    function startHold() { clearTimeout(holdTimer); holdTimer = setTimeout(function() { exitBlackScreen(); }, 2000); }
-    function endHold() { clearTimeout(holdTimer); }
-
-    blackOverlay.addEventListener('touchstart', startHold, { passive: true });
-    blackOverlay.addEventListener('touchend', endHold);
-    blackOverlay.addEventListener('touchcancel', endHold);
 </script>
 </body>
 </html>
+
