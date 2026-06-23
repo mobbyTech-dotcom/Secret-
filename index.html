@@ -3,17 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recorder (iOS 12 Edition - V3)</title>
+    <title>Recorder V4</title>
+
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="กล้องลับ">
+
     <style>
         body {
             font-family: sans-serif;
             margin: 0; padding: 0;
-            background-color: #1a1a1a;
+            background-color: #000000;
             color: white;
             display: flex;
             flex-direction: column;
             align-items: center;
             min-height: 100vh;
+            /* ป้องกันการเลื่อนจอเด้งไปมาบน iOS */
+            overflow-x: hidden;
         }
         .container {
             padding: 20px;
@@ -26,8 +33,8 @@
             width: 100%;
             border-radius: 8px;
             background-color: #000;
-            margin-bottom: 20px;
-            max-height: 60vh;
+            margin-bottom: 15px;
+            max-height: 55vh;
         }
         .controls button {
             padding: 12px 20px;
@@ -54,11 +61,22 @@
         #resultArea {
             display: none;
             margin-top: 15px;
-            background: #2a2a2a;
-            padding: 10px;
+            background: #1f1f1f;
+            padding: 15px;
             border-radius: 8px;
+            border: 1px solid #333;
         }
-        #resultArea p { margin: 5px 0; font-size: 13px; color: #4CAF50;}
+        #resultArea p { margin: 0 0 10px 0; font-size: 14px; color: #4CAF50;}
+        .download-btn {
+            display: inline-block;
+            background: #ff9800;
+            color: black;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
@@ -74,8 +92,10 @@
     </div>
 
     <div id="resultArea">
-        <p>✔ บันทึกเสร็จสิ้น! (กดค้างที่คลิปด้านล่างเพื่อ Save ลงเครื่อง)</p>
+        <p>✔ บันทึกเสร็จสิ้น!</p>
         <video id="recordedPlayback" controls playsinline></video>
+        <br>
+        <a id="manualDownload" class="download-btn" href="#">📥 กดดาวน์โหลดไฟล์วิดีโอ</a>
     </div>
 </div>
 
@@ -91,6 +111,7 @@
     var preview = document.getElementById('preview');
     var recordedPlayback = document.getElementById('recordedPlayback');
     var resultArea = document.getElementById('resultArea');
+    var manualDownload = document.getElementById('manualDownload');
     var startBtn = document.getElementById('startBtn');
     var stopBtn = document.getElementById('stopBtn');
     var blackScreenBtn = document.getElementById('blackScreenBtn');
@@ -108,12 +129,6 @@
         if (wakeLock) { wakeLock.release(); wakeLock = null; }
     }
 
-    document.addEventListener('visibilitychange', async function() {
-        if (document.visibilityState === 'visible' && mediaRecorder && mediaRecorder.state === 'recording') {
-            await requestWakeLock();
-        }
-    });
-
     function enterBlackScreen() {
         preview.style.opacity = '0';
         blackOverlay.style.display = 'block';
@@ -124,13 +139,7 @@
         blackOverlay.style.display = 'none';
     }
 
-    // ── เริ่มบันทึก ────────────────────────────────────
     startBtn.addEventListener('click', async function() {
-        if (typeof MediaRecorder === 'undefined') {
-            alert('ไม่รองรับ MediaRecorder! \nกรุณาไปที่ Settings -> Safari -> Advanced -> Experimental Features แล้วเปิด "MediaRecorder"');
-            return;
-        }
-
         try {
             resultArea.style.display = 'none';
             stream = await navigator.mediaDevices.getUserMedia({
@@ -143,7 +152,6 @@
             var options = {};
             var extension = 'mp4';
             
-            // [จุดที่แก้ไข] เช็คอย่างปลอดภัยว่ามีฟังก์ชั่น isTypeSupported ให้ใช้หรือไม่
             if (typeof MediaRecorder.isTypeSupported === 'function') {
                 if (MediaRecorder.isTypeSupported('video/mp4')) {
                     options = { mimeType: 'video/mp4' };
@@ -151,35 +159,30 @@
                     options = { mimeType: 'video/webm' }; extension = 'webm';
                 }
             } 
-            // ถ้าไม่มี (iPhone 5s จะตกมาเข้าเงื่อนไขนี้) options จะเป็น {} ว่างๆ 
-            // ซึ่ง Safari จะยอมบันทึกเป็นฟอร์แมตมาตรฐานของมันเอง (H.264/MP4) โดยไม่ Error
 
             mediaRecorder = new MediaRecorder(stream, options);
             recordedChunks = [];
 
             mediaRecorder.ondataavailable = function(e) {
-                if (e.data && e.data.size > 0) {
-                    recordedChunks.push(e.data);
-                }
+                if (e.data && e.data.size > 0) recordedChunks.push(e.data);
             };
 
             mediaRecorder.onstop = function() {
                 var blob = new Blob(recordedChunks, { type: options.mimeType || 'video/mp4' });
                 var url = URL.createObjectURL(blob);
                 
-                var a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = 'Record_' + Date.now() + '.' + extension;
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(function() { document.body.removeChild(a); }, 100);
-
+                // 1. ใส่ URL ให้วิดีโอตัวอย่างด้านล่าง
                 recordedPlayback.src = url;
+
+                // 2. ผูก URL เข้ากับปุ่มดาวน์โหลดสีส้ม
+                manualDownload.href = url;
+                manualDownload.download = 'Secret_Record_' + Date.now() + '.' + extension;
+
                 resultArea.style.display = 'block';
+                // เลื่อนหน้าจอลงมาให้ผู้ใช้เห็นปุ่มโหลด
+                window.scrollTo(0, document.body.scrollHeight);
             };
 
-            // [จุดที่แก้ไข] เอาตัวเลข (1000) ออก เพื่อไม่ให้ iOS 12 บันทึกไฟล์เสีย
             mediaRecorder.start();
             await requestWakeLock();
 
@@ -194,15 +197,10 @@
         }
     });
 
-    // ── หยุดบันทึก ─────────────────────────────────────
     stopBtn.addEventListener('click', function() {
         exitBlackScreen();
-        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-            mediaRecorder.stop();
-        }
-        if (stream) {
-            stream.getTracks().forEach(function(t) { t.stop(); });
-        }
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+        if (stream) stream.getTracks().forEach(function(t) { t.stop(); });
         releaseWakeLock();
 
         startBtn.style.display = 'inline-block';
@@ -216,15 +214,11 @@
         clearTimeout(holdTimer);
         holdTimer = setTimeout(function() { exitBlackScreen(); }, 2000);
     }
-
-    function endHold(e) {
-        clearTimeout(holdTimer);
-    }
+    function endHold(e) { clearTimeout(holdTimer); }
 
     blackOverlay.addEventListener('touchstart', startHold, { passive: true });
     blackOverlay.addEventListener('touchend', endHold);
     blackOverlay.addEventListener('touchcancel', endHold);
-
     blackOverlay.addEventListener('mousedown', startHold);
     blackOverlay.addEventListener('mouseup', endHold);
     blackOverlay.addEventListener('mouseleave', endHold);
