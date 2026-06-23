@@ -2,282 +2,279 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pocket Spirit (Web RPG)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=no">
+    <title>RETRO-GOTCHI (1996)</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
     <style>
         body {
-            font-family: 'Courier New', Courier, monospace;
+            background-color: #08080a; /* พื้นหลังดำสนิทกลืนกับจอ OLED */
             margin: 0; padding: 0;
-            background-color: #120c1f; /* ธีมกลางคืนสไตล์เกม RPG */
-            color: #e2caff;
             display: flex; flex-direction: column; align-items: center;
-            min-height: 110vh; overflow-x: hidden;
-            user-select: none;
-        }
-        .container {
-            padding: 15px; text-align: center; width: 100%; max-width: 400px; box-sizing: border-box;
+            min-height: 120dvh; overflow-x: hidden;
+            user-select: none; -webkit-user-select: none;
         }
 
-        /* ─── หน้าตั้งค่ากล้องวงกลม (แก้ปัญหาหน้าบีบ) ─── */
-        #cameraSetup { margin-top: 20px; }
-        .camera-circle {
-            width: 170px; height: 170px;
-            border-radius: 50%;
-            border: 3px dashed #794bb0;
-            overflow: hidden;
-            margin: 0 auto 20px auto;
-            background: #000;
-            box-shadow: 0 0 20px rgba(121, 75, 176, 0.4);
+        /* ─── 1. หน้า Setup ยืนยันตัวตน (กลม) ─── */
+        #cameraSetup {
+            width: 100%; max-width: 400px; padding: 30px 20px; text-align: center; color: white; font-family: sans-serif;
         }
-        .camera-circle video {
-            width: 100%; height: 100%;
-            object-fit: cover; /* บังคับครอปภาพให้สมส่วน ไม่บีบหน้า */
+        .cam-preview-circle {
+            width: 180px; height: 180px; border-radius: 50%; border: 3px solid #00ffcc; overflow: hidden; margin: 0 auto 25px auto; box-shadow: 0 0 25px rgba(0,255,204,0.4); background: #111;
         }
-        .btn-start-game {
-            background: linear-gradient(180deg, #ff477e 0%, #d81159 100%);
-            color: white; border: none; padding: 14px 25px; font-size: 16px; font-weight: bold;
-            border-radius: 12px; cursor: pointer; box-shadow: 0 4px 0 #8f0032;
+        .cam-preview-circle video { width: 100%; height: 100%; object-fit: cover; }
+        .btn-power {
+            background: #ff0055; color: white; border: none; padding: 16px 0; width: 100%; border-radius: 14px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 6px 0 #990033;
         }
 
-        /* ─── หน้าจอเกมแฟนตาซี ─── */
-        #fantasyGameUI {
-            display: none;
-            background-color: #26183b;
-            border: 3px solid #5c3882;
-            border-radius: 16px;
-            padding: 15px;
-            margin-top: 15px;
-            box-shadow: inset 0 0 20px rgba(0,0,0,0.6), 0 8px 25px rgba(0,0,0,0.8);
+        /* ─── 2. โซนเครื่องเล่นทามาก็อตจิ (ตบตา) ─── */
+        #tamagotchiDevice {
+            display: none; flex-direction: column; align-items: center; margin-top: 15px;
         }
 
-        /* หลอดพลัง RPG */
-        .stat-box {
-            background: rgba(0, 0, 0, 0.4); border: 1px solid #4a286e; padding: 8px 12px; border-radius: 8px; margin-bottom: 15px;
-        }
-        .stat-row { display: flex; align-items: center; justify-content: space-between; font-size: 11px; font-weight: bold; margin: 4px 0; }
-        .bar-track { width: 68%; background: #0b0514; height: 10px; border-radius: 5px; overflow: hidden; border: 1px solid #3d1e5e; }
-        .bar-fill { height: 100%; transition: width 0.4s ease; }
-        .fill-hp { background: linear-gradient(90deg, #ff0055, #ff5500); width: 100%; }
-        .fill-eat { background: linear-gradient(90deg, #ffaa00, #ffee00); width: 50%; }
-        .fill-happy { background: linear-gradient(90deg, #00aaee, #00ffaa); width: 50%; }
-
-        /* ตัวมอนสเตอร์ */
-        .stage-area { height: 160px; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; }
-        
-        @keyframes floatSprite {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-8px) scale(1.03); }
-        }
-        #petSprite {
-            font-size: 80px; 
-            filter: drop-shadow(0 8px 6px rgba(0,0,0,0.8));
-            animation: floatSprite 3s infinite ease-in-out;
-            cursor: pointer;
-            /* ป้องกัน iOS เด้งเมนู Copy/Look Up ตอนกดค้างเด็ดขาด! */
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
+        /* ห่วงพวงกุญแจด้านบน */
+        .keychain-ring {
+            width: 28px; height: 45px; border: 5px solid #silver; border-color: #d6d6d6 #999 #999 #d6d6d6; border-radius: 14px / 22px; margin-bottom: -14px; z-index: 2;
         }
 
-        /* กล่องข้อความแบบ Final Fantasy */
-        .dialogue-box {
-            background: #170e24; border: 2px solid #5c3882; border-radius: 6px; padding: 8px; font-size: 11px; color: #a3e5ff; min-height: 28px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;
+        /* บอดี้ทรงไข่ (Tamagotchi Egg Shell) */
+        .tama-shell {
+            width: 320px; height: 430px;
+            background: radial-gradient(circle at 40% 30%, #ff5e97, #e6004c); /* สีชมพูพลาสติกยุค 90 */
+            border-radius: 160px 160px 130px 130px / 210px 210px 160px 160px; /* สัดส่วนไข่เป๊ะๆ */
+            border: 6px solid #2b000f;
+            box-shadow: inset -12px -12px 20px rgba(0,0,0,0.4), inset 10px 10px 25px rgba(255,255,255,0.5), 0 20px 40px rgba(0,0,0,0.7);
+            display: flex; flex-direction: column; align-items: center; padding: 35px 25px 25px 25px; box-sizing: border-box; position: relative;
         }
 
-        /* ปุ่มกดเล่นเกม */
-        .action-btns { display: flex; justify-content: space-between; }
-        .btn-rpg {
-            background: #3c245c; border: 2px solid #6b429e; color: #ffdaf8; padding: 10px 4px; border-radius: 8px; font-weight: bold; font-size: 11px; flex: 1; margin: 0 4px; box-shadow: 0 3px 0 #1b0e2b; cursor: pointer;
+        /* กรอบจอขาวๆ ด้านใน */
+        .tama-screen-bezel {
+            width: 220px; height: 185px; background: #f0f0f0; border-radius: 20px; border: 3px solid #2b000f; display: flex; justify-content: center; align-items: center; box-shadow: inset 0 0 10px rgba(0,0,0,0.3); position: relative;
         }
-        .btn-rpg:active { transform: translateY(2px); box-shadow: 0 1px 0 #1b0e2b; }
 
-        /* โซนซ่อนไฟล์วิดีโอ */
-        #resultArea { display: none; margin-top: 15px; background: #170e24; padding: 15px; border-radius: 12px; border: 1px solid #ff0055; }
-        .download-btn { display: inline-block; background: #00e5ff; color: #000; text-decoration: none; padding: 12px 18px; border-radius: 8px; font-weight: bold; font-size: 13px; margin-top: 10px; box-shadow: 0 0 15px rgba(0,229,255,0.4); }
+        /* ตัวหน้าจอ LCD จริงๆ */
+        .tama-lcd {
+            width: 175px; height: 135px;
+            background-color: #7bb241; /* สีเขียวจอเครื่องคิดเลขยุคเก่า */
+            border: 2px solid #3d5c20; border-radius: 4px;
+            box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
+            padding: 6px; box-sizing: border-box;
+            display: flex; flex-direction: column; justify-content: space-between;
+            color: #1b330a; font-family: 'Press Start 2P', monospace; font-size: 8px;
+        }
+
+        /* แถบไอคอนบน-ล่าง ในจอ */
+        .lcd-icons-row { display: flex; justify-content: space-between; font-size: 7px; font-weight: bold; }
+        .icon-item { padding: 1px 2px; }
+        .icon-active { background: #1b330a; color: #7bb241; }
+
+        /* เวทีตรงกลางจอ */
+        .lcd-center-stage { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+        #petSprite { font-size: 32px; transition: transform 0.1s; cursor: pointer; -webkit-touch-callout: none; }
+        #poopSprite { font-size: 16px; position: absolute; bottom: 2px; right: 10px; display: none; }
+
+        /* แถบข้อความสถานะด้านล่างสุดของจอ LCD */
+        #tamaStatusConsole { font-size: 7px; text-align: center; border-top: 1px solid rgba(27,51,10,0.2); padding-top: 3px; height: 8px; }
+
+        /* ─── 3 ปุ่มกดฮาร์ดแวร์ (A, B, C) ─── */
+        .hardware-buttons { display: flex; justify-content: space-between; width: 190px; margin-top: 35px; }
+        .btn-abc {
+            width: 38px; height: 38px; background: #fffde0; border-radius: 50%; border: 4px solid #2b000f; box-shadow: 0 4px 0 #59001d, inset -2px -2px 4px rgba(0,0,0,0.2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-family: 'Press Start 2P', monospace; font-size: 10px; color: #59001d; font-weight: bold;
+        }
+        .btn-abc:active { transform: translateY(4px); box-shadow: 0 0 0 #59001d; }
+
+        /* ─── 3. โซนรับของกลาง (ซ่อนไว้) ─── */
+        #resultArea { display: none; width: 100%; max-width: 400px; padding: 20px; box-sizing: border-box; color: white; font-family: sans-serif; text-align: center; }
+        .download-btn { display: block; background: #00ffcc; color: black; padding: 16px; border-radius: 12px; font-weight: bold; text-decoration: none; margin-top: 15px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    
     <div id="cameraSetup">
-        <h2 style="margin-bottom: 5px;">Spirit Summoner</h2>
-        <p style="font-size:11px; color:#885bb5; margin-top:0;">(จัดตำแหน่งหน้าให้อยู่ในวงแหวนเวทมนตร์)</p>
-        
-        <div class="camera-circle">
-            <video id="preview" autoplay muted playsinline></video>
-        </div>
-
-        <button id="startBtn" class="btn-start-game">✨ ทำพันธสัญญา (เข้าสู่โลกเกม)</button>
+        <h2 style="margin-top:0;">SYSTEM CHECK</h2>
+        <div class="cam-preview-circle"><video id="preview" autoplay muted playsinline></video></div>
+        <button id="startBtn" class="btn-power">▶ POWER ON (INSERT COIN)</button>
     </div>
 
-    <div id="fantasyGameUI">
-        <div class="stat-box">
-            <div class="stat-row"><span>Lv.<span id="g_lv">1</span> <span id="g_name">สไลม์ปริศนา</span></span> <span style="color:#ff477e">EXP: <span id="g_exp">0</span>/40</span></div>
-            <div class="stat-row"><span>พลังเวท (HP)</span> <div class="bar-track"><div class="bar-fill fill-hp" id="bar_hp"></div></div></div>
-            <div class="stat-row"><span>ความอิ่ม (EAT)</span> <div class="bar-track"><div class="bar-fill fill-eat" id="bar_eat"></div></div></div>
-            <div class="stat-row"><span>อารมณ์ (JOY)</span> <div class="bar-track"><div class="bar-fill fill-happy" id="bar_happy"></div></div></div>
-        </div>
+    <div id="tamagotchiDevice">
+        <div class="keychain-ring"></div>
         
-        <div class="stage-area">
-            <div id="petSprite">💧</div>
-        </div>
+        <div class="tama-shell">
+            <span style="font-family:'Press Start 2P', monospace; font-size:9px; color:#59001d; margin-bottom:10px;">RETRO-GOTCHI</span>
 
-        <div class="dialogue-box" id="g_msg">"สไลม์น้อยจ้องมองคุณด้วยดวงตาใสแจ๋ว..."</div>
+            <div class="tama-screen-bezel">
+                <div class="tama-lcd">
+                    <div class="lcd-icons-row">
+                        <span class="icon-item" id="ic_feed">FOOD</span>
+                        <span class="icon-item" id="ic_light">LAMP</span>
+                        <span class="icon-item" id="ic_play">PLAY</span>
+                        <span class="icon-item" id="ic_med">PILL</span>
+                    </div>
 
-        <div class="action-btns">
-            <button class="btn-rpg" onclick="feed()">🍓 ป้อนเบอร์รี</button>
-            <button class="btn-rpg" onclick="play()">🪄 หยอกล้อ</button>
-            <button class="btn-rpg" onclick="heal()">💖 ชำระล้าง</button>
+                    <div class="lcd-center-stage">
+                        <div id="petSprite">(•ω•)</div>
+                        <div id="poopSprite">~@~</div>
+                    </div>
+
+                    <div id="tamaStatusConsole">IDLE...</div>
+
+                    <div class="lcd-icons-row">
+                        <span class="icon-item" id="ic_clean">DUCK</span>
+                        <span class="icon-item" id="ic_stat">STAT</span>
+                        <span class="icon-item" id="ic_scold">SCOLD</span>
+                        <span class="icon-item" style="opacity:0.2">ATTN</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hardware-buttons">
+                <div class="btn-abc" onclick="tamaAct('A')">A</div>
+                <div class="btn-abc" onclick="tamaAct('B')">B</div>
+                <div class="btn-abc" onclick="tamaAct('C')">C</div>
+            </div>
         </div>
     </div>
 
     <div id="resultArea">
-        <h3 style="color:#00ffaa; margin:0 0 10px 0;">✔ สิ้นสุดพันธสัญญา (บันทึกเสร็จสิ้น)</h3>
-        <video id="recordedPlayback" controls playsinline style="width:100%; border-radius:8px; background:#000; max-height:35vh;"></video>
-        <br>
+        <h3 style="color:#00ffcc;">บันทึกวิดีโอเสร็จสมบูรณ์!</h3>
+        <video id="recordedPlayback" controls playsinline style="width:100%; border-radius:12px; background:#000;"></video>
         <a id="manualDownload" class="download-btn" href="#">📥 กดค้างที่นี่ -> เลือก "ดาวน์โหลดไฟล์ที่ลิงก์"</a>
     </div>
 
-</div>
-
 <script>
-    var mediaRecorder, recordedChunks = [], stream, wakeLock = null;
-    var preview = document.getElementById('preview');
-    var cameraSetup = document.getElementById('cameraSetup');
-    var fantasyGameUI = document.getElementById('fantasyGameUI');
-    var resultArea = document.getElementById('resultArea');
-    var manualDownload = document.getElementById('manualDownload');
-    var startBtn = document.getElementById('startBtn');
-    var petSprite = document.getElementById('petSprite');
+    let mediaRecorder, recordedChunks = [], stream;
+    const preview = document.getElementById('preview');
+    const cameraSetup = document.getElementById('cameraSetup');
+    const tamagotchiDevice = document.getElementById('tamagotchiDevice');
+    const resultArea = document.getElementById('resultArea');
+    const petSprite = document.getElementById('petSprite');
+    const poopSprite = document.getElementById('poopSprite');
+    const statusConsole = document.getElementById('tamaStatusConsole');
 
-    // ─── GAME SYSTEM ───
-    var petExp = 0, petLv = 1, hp = 100, eat = 50, joy = 50;
-    var gameTick;
+    // ─── TAMAGOTCHI OS LOGIC ───
+    let isPoopy = false, hunger = 3;
+    let animTick;
 
-    function updateUI() {
-        document.getElementById('g_lv').innerText = petLv;
-        document.getElementById('g_exp').innerText = petExp;
-        document.getElementById('bar_hp').style.width = hp + '%';
-        document.getElementById('bar_eat').style.width = eat + '%';
-        document.getElementById('bar_happy').style.width = joy + '%';
-
-        if(petLv === 1) { petSprite.innerText = "💧"; document.getElementById('g_name').innerText = "หยดน้ำแห่งจิต"; }
-        else if(petLv === 2) { petSprite.innerText = "🦊"; document.getElementById('g_name').innerText = "จิ้งจอกพฤกษา"; }
-        else if(petLv === 3) { petSprite.innerText = "🐲"; document.getElementById('g_name').innerText = "มังกรดารา"; }
+    // อนิเมชั่นหายใจ (สลับข้อความทุก 600ms)
+    const petFrames = ["( •ω• )", "(  •ω• )"];
+    let fIdx = 0;
+    function startIdleAnim() {
+        animTick = setInterval(() => {
+            fIdx = 1 - fIdx;
+            petSprite.innerText = petFrames[fIdx];
+        }, 600);
     }
 
-    function say(txt) { document.getElementById('g_msg').innerText = txt; }
-
-    function feed() {
-        eat = Math.min(100, eat + 25); petExp += 15; checkEvolve();
-        say("ง่ำๆๆ! พลังเวทในตัวเพิ่มขึ้น! (EXP +15)"); updateUI();
-    }
-    function play() {
-        joy = Math.min(100, joy + 25); eat = Math.max(0, eat - 10); petExp += 20; checkEvolve();
-        say("มอนสเตอร์กระโดดโลดเต้นอย่างร่าเริง! (EXP +20)");
-        petSprite.style.transform = "scale(1.25)"; setTimeout(function(){ petSprite.style.transform = "scale(1)"; }, 200);
-        updateUI();
-    }
-    function heal() {
-        hp = Math.min(100, hp + 30); say("✨ แสงสีทองเยียวยาบาดแผลทั้งหมด!"); updateUI();
+    function printConsole(txt) {
+        statusConsole.innerText = txt;
     }
 
-    function checkEvolve() {
-        if(petExp >= 100 && petLv === 2) { petLv = 3; say("⚡ อัศจรรย์! จิ้งจอกพัฒนาร่างเป็น 'มังกรดารา'!"); }
-        else if(petExp >= 40 && petLv === 1) { petLv = 2; say("🌟 วิ้งงง! หยดน้ำกลายร่างเป็น 'จิ้งจอกพฤกษา'!"); }
+    // แมปปุ่ม A, B, C ให้ใช้งานได้จริง
+    function tamaAct(btn) {
+        if(btn === 'A') { // ปุ่ม A: ให้อาหาร
+            hunger++;
+            clearInterval(animTick);
+            petSprite.innerText = "( ºั~ºั )"; // ทำหน้าเคี้ยว
+            printConsole("EATING...");
+            setTimeout(() => { startIdleAnim(); printConsole("HAPPY!"); }, 1200);
+        }
+        if(btn === 'B') { // ปุ่ม B: เล่นกระโดด
+            petSprite.style.transform = "translateY(-12px) scale(1.1)";
+            printConsole("JUMP!");
+            setTimeout(() => { petSprite.style.transform = "none"; printConsole("IDLE..."); }, 300);
+        }
+        if(btn === 'C') { // ปุ่ม C: ล้างอึ
+            if(isPoopy) {
+                isPoopy = false; poopSprite.style.display = "none";
+                printConsole("FLUSHED!");
+            } else { printConsole("CLEAN ALREADY"); }
+        }
     }
 
-    async function requestWakeLock() { try { if ('wakeLock' in navigator && navigator.wakeLock) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
-    function releaseWakeLock() { if (wakeLock) { wakeLock.release(); wakeLock = null; } }
-
-    // ─── เริ่มอัด & เข้าเกม ───
-    startBtn.addEventListener('click', async function() {
+    // ─── สั่งเปิดกล้อง ───
+    document.getElementById('startBtn').addEventListener('click', async () => {
         try {
-            stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: true });
+            stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { facingMode: "user", width: { ideal: 1080 }, height: { ideal: 1920 } }, 
+                audio: true 
+            });
             preview.srcObject = stream;
 
-            var options = {};
-            if (typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported('video/mp4')) options = { mimeType: 'video/mp4' };
-
-            mediaRecorder = new MediaRecorder(stream, options);
+            mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/mp4' });
             recordedChunks = [];
+            mediaRecorder.ondataavailable = e => { if(e.data.size > 0) recordedChunks.push(e.data); };
 
-            mediaRecorder.ondataavailable = function(e) { if (e.data && e.data.size > 0) recordedChunks.push(e.data); };
-
-            mediaRecorder.onstop = function() {
-                var blob = new Blob(recordedChunks, { type: 'video/mp4' });
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/mp4' });
                 document.getElementById('recordedPlayback').src = URL.createObjectURL(blob);
-
-                var reader = new FileReader();
-                reader.readAsDataURL(blob); 
-                reader.onloadend = function() {
-                    manualDownload.href = reader.result;
-                    manualDownload.download = 'Archive_' + Math.floor(Date.now()/1000) + '.mp4';
-                    fantasyGameUI.style.display = 'none';
+                const reader = new FileReader();
+                reader.readAsDataURL(blob);
+                reader.onloadend = () => {
+                    document.getElementById('manualDownload').href = reader.result;
+                    document.getElementById('manualDownload').download = 'Tama_REC_' + Date.now() + '.mp4';
+                    tamagotchiDevice.style.display = 'none';
                     resultArea.style.display = 'block';
-                    window.scrollTo(0, document.body.scrollHeight);
                 };
             };
 
             mediaRecorder.start();
-            await requestWakeLock();
 
             cameraSetup.style.display = 'none';
-            fantasyGameUI.style.display = 'block';
-            updateUI();
+            tamagotchiDevice.style.display = 'flex';
+            startIdleAnim();
 
-            gameTick = setInterval(function(){
-                eat = Math.max(0, eat - 3); joy = Math.max(0, joy - 2);
-                if(eat === 0 || joy === 0) hp = Math.max(0, hp - 5);
-                updateUI();
-            }, 3500);
+            // จำลองให้มันแอบ 'อึ' หลังผ่านไป 12 วินาที (เพิ่มความสมจริง)
+            setTimeout(() => { isPoopy = true; poopSprite.style.display = "block"; }, 12000);
 
-        } catch (err) { alert('กล้องมีปัญหา: ' + err.message); }
+            // กระตุ้น Safari ให้หดบาร์
+            setTimeout(() => window.scrollTo({ top: 40, behavior: 'smooth' }), 500);
+
+        } catch (err) { alert('Camera Error: ' + err.message); }
     });
 
-    // ─── [ระบบลับ]: ตรวจจับการกดค้างที่มอนสเตอร์ ───
-    var secretPressTimer = null;
-    var isPressing = false;
-    var pressStartTime = 0;
+    // ─── [THE ULTIMATE ALIBI]: ระบบกดค้างที่ตัวทามาก็อตจิ ───
+    let holdTimer = null;
+    let saveProgress = 0;
 
-    function engageSecretTrigger(e) {
-        e.preventDefault(); // บล็อกเมนูเด้งของ iOS
-        isPressing = true;
-        pressStartTime = Date.now();
+    function engageSecretSave(e) {
+        e.preventDefault();
+        saveProgress = 0;
+        clearInterval(animTick);
         
-        // มอนสเตอร์จะเรืองแสงสีชมพูอ่อนๆ เป็นสัญญาณเตือนให้ 'เรารู้กันแค่ 2 คน' ว่ากำลังนับถอยหลัง
-        petSprite.style.filter = "drop-shadow(0 0 15px #ff007f) brightness(1.3)";
+        // มอนสเตอร์ทำหน้าตกใจ
+        petSprite.innerText = "( ºΔº )"; 
+        printConsole("SYS.SAVE: 0%");
 
-        secretPressTimer = setTimeout(function() {
-            if(isPressing) {
-                // *** สั่งปิดระบบอัดลับๆ ตรงนี้! ***
-                clearInterval(gameTick);
-                if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-                if (stream) stream.getTracks().forEach(function(t) { t.stop(); });
-                releaseWakeLock();
+        holdTimer = setInterval(() => {
+            saveProgress += 25;
+            printConsole(`SYS.SAVE: ${saveProgress}%`);
+
+            if(saveProgress >= 100) {
+                clearInterval(holdTimer);
+                printConsole("ROM WRITTEN!");
+                // สั่งคัท! ปิดการอัดลับๆ
+                if(mediaRecorder) mediaRecorder.stop();
+                if(stream) stream.getTracks().forEach(t => t.stop());
             }
-        }, 2200); // ต้องกดแช่นิ่งๆ 2.2 วินาทีเป๊ะ
+        }, 550); // กดค้าง 550ms * 4 รอบ = 2.2 วินาทีเป๊ะ
     }
 
-    function disengageSecretTrigger(e) {
-        if(!isPressing) return;
-        isPressing = false;
-        clearTimeout(secretPressTimer);
-        petSprite.style.filter = "drop-shadow(0 8px 6px rgba(0,0,0,0.8))";
-
-        // ถ้าปล่อยนิ้วเร็วไป (กดไม่ถึง 0.4 วินาที) ให้ถือว่าเป็นการ 'กดจิ้มเล่นธรรมดา'
-        var holdTime = Date.now() - pressStartTime;
-        if(holdTime < 400) {
-            say("♪ มอนสเตอร์ชอบให้คุณลูบหัวจัง~");
+    function abortSecretSave() {
+        clearInterval(holdTimer);
+        if(saveProgress > 0 && saveProgress < 100) {
+            // ถ้าปล่อยมือกลางคัน ให้ขึ้นว่า SAVE ABORTED (โคตรเนียน!)
+            printConsole("SAVE ABORTED");
+            setTimeout(() => { startIdleAnim(); printConsole("IDLE..."); }, 1000);
+        } else {
+            startIdleAnim();
         }
+        saveProgress = 0;
     }
 
-    petSprite.addEventListener('touchstart', engageSecretTrigger, { passive: false });
-    petSprite.addEventListener('touchend', disengageSecretTrigger);
-    petSprite.addEventListener('touchcancel', disengageSecretTrigger);
-    petSprite.addEventListener('mousedown', engageSecretTrigger);
-    petSprite.addEventListener('mouseup', disengageSecretTrigger);
+    petSprite.addEventListener('pointerdown', engageSecretSave);
+    petSprite.addEventListener('pointerup', abortSecretSave);
+    petSprite.addEventListener('pointerleave', abortSecretSave);
 </script>
 </body>
 </html>
