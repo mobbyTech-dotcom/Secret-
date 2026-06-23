@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recorder (iOS 12 Edition)</title>
+    <title>Recorder (iOS 12 Edition - V3)</title>
     <style>
         body {
             font-family: sans-serif;
@@ -109,14 +109,12 @@
     }
 
     document.addEventListener('visibilitychange', async function() {
-        // แก้ไขการใช้ ?. ที่ทำให้ iOS 12 พัง
         if (document.visibilityState === 'visible' && mediaRecorder && mediaRecorder.state === 'recording') {
             await requestWakeLock();
         }
     });
 
     function enterBlackScreen() {
-        // ใช้การซ่อนผ่าน CSS แทนการดึง srcObject ออก เพื่อไม่ให้กล้อง iPhone 5s ค้าง
         preview.style.opacity = '0';
         blackOverlay.style.display = 'block';
     }
@@ -128,7 +126,6 @@
 
     // ── เริ่มบันทึก ────────────────────────────────────
     startBtn.addEventListener('click', async function() {
-        // เช็คก่อนว่าเบราว์เซอร์เปิดฟังก์ชั่นอัดวิดีโอไว้หรือยัง
         if (typeof MediaRecorder === 'undefined') {
             alert('ไม่รองรับ MediaRecorder! \nกรุณาไปที่ Settings -> Safari -> Advanced -> Experimental Features แล้วเปิด "MediaRecorder"');
             return;
@@ -146,11 +143,16 @@
             var options = {};
             var extension = 'mp4';
             
-            if (MediaRecorder.isTypeSupported('video/mp4')) {
-                options = { mimeType: 'video/mp4' };
-            } else if (MediaRecorder.isTypeSupported('video/webm')) {
-                options = { mimeType: 'video/webm' }; extension = 'webm';
-            }
+            // [จุดที่แก้ไข] เช็คอย่างปลอดภัยว่ามีฟังก์ชั่น isTypeSupported ให้ใช้หรือไม่
+            if (typeof MediaRecorder.isTypeSupported === 'function') {
+                if (MediaRecorder.isTypeSupported('video/mp4')) {
+                    options = { mimeType: 'video/mp4' };
+                } else if (MediaRecorder.isTypeSupported('video/webm')) {
+                    options = { mimeType: 'video/webm' }; extension = 'webm';
+                }
+            } 
+            // ถ้าไม่มี (iPhone 5s จะตกมาเข้าเงื่อนไขนี้) options จะเป็น {} ว่างๆ 
+            // ซึ่ง Safari จะยอมบันทึกเป็นฟอร์แมตมาตรฐานของมันเอง (H.264/MP4) โดยไม่ Error
 
             mediaRecorder = new MediaRecorder(stream, options);
             recordedChunks = [];
@@ -165,7 +167,6 @@
                 var blob = new Blob(recordedChunks, { type: options.mimeType || 'video/mp4' });
                 var url = URL.createObjectURL(blob);
                 
-                // 1. พยายามสั่งดาวน์โหลดแบบปกติ
                 var a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
@@ -174,12 +175,12 @@
                 a.click();
                 setTimeout(function() { document.body.removeChild(a); }, 100);
 
-                // 2. [แผนสำรองสำหรับ iPhone 5s] แสดงวิดีโอบนหน้าเว็บให้ผู้ใช้ "กดค้างเพื่อบันทึก" ได้เอง
                 recordedPlayback.src = url;
                 resultArea.style.display = 'block';
             };
 
-            mediaRecorder.start(1000);
+            // [จุดที่แก้ไข] เอาตัวเลข (1000) ออก เพื่อไม่ให้ iOS 12 บันทึกไฟล์เสีย
+            mediaRecorder.start();
             await requestWakeLock();
 
             startBtn.style.display = 'none';
@@ -211,7 +212,6 @@
 
     blackScreenBtn.addEventListener('click', function() { enterBlackScreen(); });
 
-    // ── ออกจากจอดำ (รองรับทั้งระบบสัมผัสและเมาส์) ─────────────
     function startHold(e) {
         clearTimeout(holdTimer);
         holdTimer = setTimeout(function() { exitBlackScreen(); }, 2000);
@@ -221,12 +221,10 @@
         clearTimeout(holdTimer);
     }
 
-    // สำหรับ iOS / จอสัมผัส
     blackOverlay.addEventListener('touchstart', startHold, { passive: true });
     blackOverlay.addEventListener('touchend', endHold);
     blackOverlay.addEventListener('touchcancel', endHold);
 
-    // สำหรับ PC
     blackOverlay.addEventListener('mousedown', startHold);
     blackOverlay.addEventListener('mouseup', endHold);
     blackOverlay.addEventListener('mouseleave', endHold);
