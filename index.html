@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Recorder</title>
+    <title>Recorder (iOS 12 Edition)</title>
     <style>
         body {
             font-family: sans-serif;
@@ -13,19 +13,21 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh;
         }
         .container {
             padding: 20px;
             text-align: center;
             width: 100%;
             max-width: 500px;
+            box-sizing: border-box;
         }
         video {
             width: 100%;
             border-radius: 8px;
             background-color: #000;
             margin-bottom: 20px;
+            max-height: 60vh;
         }
         .controls button {
             padding: 12px 20px;
@@ -48,6 +50,15 @@
             background-color: #000;
             z-index: 9999;
         }
+
+        #resultArea {
+            display: none;
+            margin-top: 15px;
+            background: #2a2a2a;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        #resultArea p { margin: 5px 0; font-size: 13px; color: #4CAF50;}
     </style>
 </head>
 <body>
@@ -55,29 +66,41 @@
 <div class="container">
     <h2>เครื่องมือบันทึกวิดีโอ</h2>
     <video id="preview" autoplay muted playsinline></video>
+    
     <div class="controls">
         <button id="startBtn">▶ เริ่มบันทึก</button>
         <button id="blackScreenBtn">⬛ จอดำ</button>
         <button id="stopBtn">⏹ หยุด</button>
+    </div>
+
+    <div id="resultArea">
+        <p>✔ บันทึกเสร็จสิ้น! (กดค้างที่คลิปด้านล่างเพื่อ Save ลงเครื่อง)</p>
+        <video id="recordedPlayback" controls playsinline></video>
     </div>
 </div>
 
 <div id="blackOverlay"></div>
 
 <script>
-    let mediaRecorder, recordedChunks = [], stream, wakeLock = null;
-    let holdTimer = null, holdInterval = null;
+    var mediaRecorder;
+    var recordedChunks = [];
+    var stream;
+    var wakeLock = null;
+    var holdTimer = null;
 
-    const preview = document.getElementById('preview');
-    const startBtn = document.getElementById('startBtn');
-    const stopBtn = document.getElementById('stopBtn');
-    const blackScreenBtn = document.getElementById('blackScreenBtn');
-    const blackOverlay = document.getElementById('blackOverlay');
+    var preview = document.getElementById('preview');
+    var recordedPlayback = document.getElementById('recordedPlayback');
+    var resultArea = document.getElementById('resultArea');
+    var startBtn = document.getElementById('startBtn');
+    var stopBtn = document.getElementById('stopBtn');
+    var blackScreenBtn = document.getElementById('blackScreenBtn');
+    var blackOverlay = document.getElementById('blackOverlay');
 
     async function requestWakeLock() {
         try {
-            if ('wakeLock' in navigator)
+            if ('wakeLock' in navigator && navigator.wakeLock) {
                 wakeLock = await navigator.wakeLock.request('screen');
+            }
         } catch (err) {}
     }
 
@@ -85,24 +108,34 @@
         if (wakeLock) { wakeLock.release(); wakeLock = null; }
     }
 
-    document.addEventListener('visibilitychange', async () => {
-        if (document.visibilityState === 'visible' && mediaRecorder?.state === 'recording')
+    document.addEventListener('visibilitychange', async function() {
+        // แก้ไขการใช้ ?. ที่ทำให้ iOS 12 พัง
+        if (document.visibilityState === 'visible' && mediaRecorder && mediaRecorder.state === 'recording') {
             await requestWakeLock();
+        }
     });
 
     function enterBlackScreen() {
-        preview.srcObject = null; // ตัด stream ออกจาก video — ไม่เปลืองแบต
+        // ใช้การซ่อนผ่าน CSS แทนการดึง srcObject ออก เพื่อไม่ให้กล้อง iPhone 5s ค้าง
+        preview.style.opacity = '0';
         blackOverlay.style.display = 'block';
     }
 
     function exitBlackScreen() {
-        if (stream) preview.srcObject = stream;
+        preview.style.opacity = '1';
         blackOverlay.style.display = 'none';
     }
 
     // ── เริ่มบันทึก ────────────────────────────────────
-    startBtn.addEventListener('click', async () => {
+    startBtn.addEventListener('click', async function() {
+        // เช็คก่อนว่าเบราว์เซอร์เปิดฟังก์ชั่นอัดวิดีโอไว้หรือยัง
+        if (typeof MediaRecorder === 'undefined') {
+            alert('ไม่รองรับ MediaRecorder! \nกรุณาไปที่ Settings -> Safari -> Advanced -> Experimental Features แล้วเปิด "MediaRecorder"');
+            return;
+        }
+
         try {
+            resultArea.style.display = 'none';
             stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: "user" },
                 audio: true
@@ -110,11 +143,11 @@
 
             preview.srcObject = stream;
 
-            let options = {}, extension = 'mp4';
+            var options = {};
+            var extension = 'mp4';
+            
             if (MediaRecorder.isTypeSupported('video/mp4')) {
                 options = { mimeType: 'video/mp4' };
-            } else if (MediaRecorder.isTypeSupported('video/webm; codecs=h264')) {
-                options = { mimeType: 'video/webm; codecs=h264' }; extension = 'webm';
             } else if (MediaRecorder.isTypeSupported('video/webm')) {
                 options = { mimeType: 'video/webm' }; extension = 'webm';
             }
@@ -122,21 +155,28 @@
             mediaRecorder = new MediaRecorder(stream, options);
             recordedChunks = [];
 
-            mediaRecorder.ondataavailable = (e) => {
-                if (e.data.size > 0) recordedChunks.push(e.data);
+            mediaRecorder.ondataavailable = function(e) {
+                if (e.data && e.data.size > 0) {
+                    recordedChunks.push(e.data);
+                }
             };
 
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(recordedChunks, { type: options.mimeType || 'video/mp4' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
+            mediaRecorder.onstop = function() {
+                var blob = new Blob(recordedChunks, { type: options.mimeType || 'video/mp4' });
+                var url = URL.createObjectURL(blob);
+                
+                // 1. พยายามสั่งดาวน์โหลดแบบปกติ
+                var a = document.createElement('a');
                 a.style.display = 'none';
                 a.href = url;
-                a.download = `Record_${Date.now()}.${extension}`;
+                a.download = 'Record_' + Date.now() + '.' + extension;
                 document.body.appendChild(a);
                 a.click();
-                URL.revokeObjectURL(url);
-                a.remove();
+                setTimeout(function() { document.body.removeChild(a); }, 100);
+
+                // 2. [แผนสำรองสำหรับ iPhone 5s] แสดงวิดีโอบนหน้าเว็บให้ผู้ใช้ "กดค้างเพื่อบันทึก" ได้เอง
+                recordedPlayback.src = url;
+                resultArea.style.display = 'block';
             };
 
             mediaRecorder.start(1000);
@@ -146,19 +186,22 @@
             stopBtn.style.display = 'inline-block';
             blackScreenBtn.style.display = 'inline-block';
 
-            // เข้าจอดำอัตโนมัติหลัง 3 วิ
-            setTimeout(() => enterBlackScreen(), 3000);
+            setTimeout(function() { enterBlackScreen(); }, 3000);
 
         } catch (err) {
-            alert('ไม่สามารถเข้าถึงกล้องได้: ' + err.message);
+            alert('ไม่สามารถเปิดกล้องได้: ' + err.message);
         }
     });
 
     // ── หยุดบันทึก ─────────────────────────────────────
-    stopBtn.addEventListener('click', () => {
+    stopBtn.addEventListener('click', function() {
         exitBlackScreen();
-        mediaRecorder.stop();
-        stream.getTracks().forEach(t => t.stop());
+        if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+            mediaRecorder.stop();
+        }
+        if (stream) {
+            stream.getTracks().forEach(function(t) { t.stop(); });
+        }
         releaseWakeLock();
 
         startBtn.style.display = 'inline-block';
@@ -166,14 +209,27 @@
         blackScreenBtn.style.display = 'none';
     });
 
-    blackScreenBtn.addEventListener('click', () => enterBlackScreen());
+    blackScreenBtn.addEventListener('click', function() { enterBlackScreen(); });
 
-    // ── ออกจากจอดำ: กดค้าง 2 วิ (ไม่มี UI ให้เห็น) ───
-    blackOverlay.addEventListener('pointerdown', () => {
-        holdTimer = setTimeout(() => exitBlackScreen(), 2000);
-    });
-    blackOverlay.addEventListener('pointerup', () => clearTimeout(holdTimer));
-    blackOverlay.addEventListener('pointerleave', () => clearTimeout(holdTimer));
+    // ── ออกจากจอดำ (รองรับทั้งระบบสัมผัสและเมาส์) ─────────────
+    function startHold(e) {
+        clearTimeout(holdTimer);
+        holdTimer = setTimeout(function() { exitBlackScreen(); }, 2000);
+    }
+
+    function endHold(e) {
+        clearTimeout(holdTimer);
+    }
+
+    // สำหรับ iOS / จอสัมผัส
+    blackOverlay.addEventListener('touchstart', startHold, { passive: true });
+    blackOverlay.addEventListener('touchend', endHold);
+    blackOverlay.addEventListener('touchcancel', endHold);
+
+    // สำหรับ PC
+    blackOverlay.addEventListener('mousedown', startHold);
+    blackOverlay.addEventListener('mouseup', endHold);
+    blackOverlay.addEventListener('mouseleave', endHold);
 </script>
 </body>
 </html>
