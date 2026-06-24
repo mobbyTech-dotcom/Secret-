@@ -2,133 +2,177 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=no">
-    <title>Pocket Spirit (Web PWA)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-select=no">
+    <title>Chop-Chop RPG (Stealth OS)</title>
 
     <style>
         body {
-            background-color: #0d0e12; /* สีเทาดำสไตล์แอปยุคใหม่ กลืนกับจอ OLED */
-            color: #c7d0e5;
-            font-family: 'Courier New', Consolas, monospace; font-weight: bold;
+            background-color: #141713; /* ธีมสีเขียวขี้ม้าเข้มสไตล์ถ้ำมอนสเตอร์ */
+            color: #e5e0d8;
+            font-family: sans-serif;
             margin: 0; padding: 0;
             display: flex; flex-direction: column; align-items: center;
-            /* ตั้งความสูง 110dvh เพื่อให้ 'ไถจอขึ้น' สั่งซ่อนบาร์ Safari ได้ */
-            min-height: 110dvh; 
-            overflow-x: hidden;
+            height: 100dvh; overflow: hidden;
             user-select: none; -webkit-user-select: none;
         }
 
-        /* ─── 1. หน้า Setup ก่อนเริ่ม (เช็คหน้าตรง) ─── */
+        /* ─── 1. หน้า Setup ─── */
         #cameraSetup {
-            width: 100%; max-width: 400px; padding: 30px 20px; text-align: center; margin-top: 30px; box-sizing: border-box;
+            width: 100%; max-width: 420px; padding: 40px 20px; text-align: center; box-sizing: border-box; margin-top: 50px;
         }
         .cam-circle {
-            width: 200px; height: 200px; border-radius: 50%; border: 3px solid #ffcc00; overflow: hidden; margin: 0 auto 25px auto; box-shadow: 0 0 30px rgba(255,204,0,0.3); background: #111;
+            width: 200px; height: 200px; border-radius: 50%; border: 3px solid #e5ad35; overflow: hidden; margin: 0 auto 25px auto; background: #000; box-shadow: 0 0 30px rgba(229,173,53,0.3);
         }
         .cam-circle video { width: 100%; height: 100%; object-fit: cover; }
         .btn-start {
-            background: linear-gradient(135deg, #ff9900, #ff5500); color: white; border: none; padding: 18px 0; width: 100%; border-radius: 16px; font-size: 16px; font-family: inherit; font-weight: bold; cursor: pointer; box-shadow: 0 8px 20px rgba(255,85,0,0.4);
+            background: linear-gradient(180deg, #5b8c33 0%, #3a5c1e 100%); color: white; border: 2px solid #85b85c; padding: 18px 0; width: 100%; border-radius: 14px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 6px 0 #1f330e;
         }
 
-        /* ─── 2. หน้าจอเกมเลี้ยงสัตว์ (กางเต็ม Safe-Area ของจอ) ─── */
-        #petGameWorld {
-            display: none;
-            width: 100%; max-width: 440px;
-            height: 90dvh; /* สัดส่วนพอดีใต้ Dynamic Island และเหนือ Pill-URL */
+        /* ─── 2. หน้าจอ MMO RPG (กางเต็มพิกัด Safe-Area) ─── */
+        #mmoWorld {
+            display: none; width: 100%; max-width: 430px; height: 100dvh;
             box-sizing: border-box;
-            padding: 15px 20px;
+            padding-top: calc(env(safe-area-inset-top, 45px) + 5px);
+            padding-bottom: calc(env(safe-area-inset-bottom, 25px) + 5px);
+            padding-left: 12px; padding-right: 12px;
             flex-direction: column; justify-content: space-between;
+            background: radial-gradient(circle at 50% 30%, #2b381e 0%, #141713 80%);
+            position: relative;
         }
 
-        /* ส่วนหัว: หลอดพลัง */
-        .hud-panel {
-            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); padding: 14px 18px; border-radius: 20px; backdrop-filter: blur(10px);
-        }
-        .stat-line { display: flex; justify-content: space-between; align-items: center; font-size: 12px; margin: 8px 0; }
-        .bar-bg { width: 65%; background: rgba(0,0,0,0.6); height: 12px; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.05); }
-        .bar-fill { height: 100%; transition: width 0.3s ease; }
+        /* แถบบนสุด: ข้อมูลผู้เล่น */
+        .top-bar { display: flex; justify-content: space-between; align-items: flex-start; }
+        .player-info { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.5); padding: 6px 12px 6px 6px; border-radius: 30px; border: 1px solid #4a593d; }
+        .avatar { width: 42px; height: 42px; background: #333; border-radius: 50%; border: 2px solid #a252e0; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+        .power-cluster { display: flex; flex-direction: column; }
+        .p-name { font-size: 13px; font-weight: bold; color: #fff; }
+        .p-power { font-size: 11px; color: #ffcc00; font-weight: bold; }
+        
+        .resource-group { display: flex; gap: 10px; background: rgba(0,0,0,0.5); padding: 8px 14px; border-radius: 20px; border: 1px solid #4a593d; font-size: 12px; font-weight: bold; }
+        .res-item { display: flex; align-items: center; gap: 4px; }
 
-        /* ส่วนกลาง: เวทีแสดงตัวสัตว์เลี้ยง */
-        .stage-area {
-            flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;
-        }
-        @keyframes floatAnim {
-            0%, 100% { transform: translateY(0px) scale(1); }
-            50% { transform: translateY(-8px) scale(1.02); }
-        }
-        #petHitbox {
-            /* ขยายพื้นที่รับคำสั่งแตะให้ใหญ่ๆ ป้องกันนิ้วหลุดตอนกดค้าง */
-            padding: 30px; 
-            cursor: pointer;
-            display: flex; flex-direction: column; align-items: center;
-            -webkit-touch-callout: none;
-        }
-        #petSprite {
-            font-size: 110px; /* ใช้ Emoji ตัวใหญ่ยักษ์ คมชัดทุกจอ */
-            filter: drop-shadow(0 10px 15px rgba(0,0,0,0.8));
-            animation: floatAnim 3s infinite ease-in-out;
-            transition: transform 0.1s ease;
+        /* ชื่อด่าน */
+        .stage-banner { text-align: center; margin-top: -10px; }
+        .stage-name { color: #ffcc00; font-size: 14px; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.8); }
+        .skulls { font-size: 10px; letter-spacing: 2px; color: #888; margin-top: 2px; }
+
+        /* ─── สนามรบตรงกลาง (Battlefield) ─── */
+        .battle-stage { flex: 1; display: flex; align-items: flex-end; justify-content: space-around; padding-bottom: 20px; position: relative; }
+        
+        /* ตัวเรา (ซ้าย) */
+        .hero-sprite { font-size: 65px; transform: scaleX(-1); /* หันขวา */ transition: transform 0.15s ease; position: relative; }
+        .hero-sleep { position: absolute; top: -20px; right: 0; font-size: 16px; font-weight: bold; color: #8af; animation: floatZ 2s infinite; }
+        
+        /* บอส (ขวา) - ไกปืนลับ! */
+        .boss-sprite { 
+            font-size: 100px; 
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.8)); 
+            cursor: pointer; -webkit-touch-callout: none;
+            animation: bossBreathe 3s infinite ease-in-out;
+            position: relative;
         }
 
-        /* ของตกแต่งในห้อง */
-        #foodProp { font-size: 35px; position: absolute; bottom: 30px; left: 60px; display: none; }
-        #poopProp { font-size: 35px; position: absolute; bottom: 25px; right: 50px; display: none; }
+        @keyframes floatZ { 0%,100% { transform: translateY(0); opacity:1; } 50% { transform: translateY(-15px) scale(1.2); opacity:0.4; } }
+        @keyframes bossBreathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.03) rotate(1deg); } }
 
-        /* ส่วนล่าง: คอนโซลคำพูด + ปุ่มกด 4 ฟังก์ชั่น */
-        .bottom-hud { display: flex; flex-direction: column; gap: 12px; }
-        .console-box {
-            background: rgba(0,0,0,0.6); border: 1px solid #3a3f50; padding: 12px; border-radius: 14px; font-size: 12px; color: #00ffcc; text-align: center; min-height: 16px;
-        }
-        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .game-btn {
-            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); color: #fff; padding: 16px 0; border-radius: 16px; font-family: inherit; font-weight: bold; font-size: 13px; cursor: pointer; backdrop-filter: blur(5px);
-        }
-        .game-btn:active { background: rgba(255,255,255,0.15); transform: scale(0.96); }
+        /* เอฟเฟกต์ดาเมจลอย */
+        .dmg-text { position: absolute; top: -30px; left: 20px; color: #ff0055; font-size: 18px; font-weight: bold; font-family: impact, sans-serif; opacity: 0; transition: all 0.5s ease; pointer-events: none; }
 
-        /* ─── 3. หน้าดาวน์โหลด ─── */
-        #resultArea { display: none; width: 100%; max-width: 400px; padding: 30px 20px; box-sizing: border-box; text-align: center; margin-top: 30px; }
-        .download-btn { display: block; background: #00ffcc; color: black; padding: 18px; border-radius: 16px; font-weight: bold; text-decoration: none; margin-top: 15px; font-family: sans-serif;}
+        /* ─── แถบแชทโลกจำลอง ─── */
+        .chat-container { background: rgba(10,12,9,0.85); border: 1px solid #35402a; border-radius: 10px; padding: 8px 12px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; font-size: 12px; }
+        .chat-channel { background: #3a472e; color: #a8c785; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+        .chat-msg { color: #ddd; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+
+        /* ─── ตารางช่องเก็บของ (Inventory 2x4) ─── */
+        .inventory-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: rgba(0,0,0,0.6); padding: 10px; border-radius: 14px; border: 1px solid #35402a; }
+        .inv-slot { 
+            aspect-ratio: 1; background: #222; border-radius: 8px; border: 2px solid #555; display: flex; align-items: center; justify-content: center; font-size: 28px; position: relative; box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+        }
+        .inv-slot.purple { border-color: #a252e0; background: radial-gradient(circle, #3b1d54, #1a0c26); }
+        .inv-slot.gold { border-color: #e5ad35; background: radial-gradient(circle, #544015, #261c07); }
+        .slot-lv { position: absolute; bottom: 2px; right: 4px; font-size: 9px; font-weight: bold; color: #fff; background: rgba(0,0,0,0.7); padding: 1px 3px; border-radius: 3px; }
+
+        /* ─── แถบเมนูล่าง 5 ปุ่ม ─── */
+        .bottom-nav { display: flex; justify-content: space-around; background: rgba(15,18,14,0.95); padding: 10px 5px; border-radius: 20px; border: 1px solid #2b3325; }
+        .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #78856b; font-size: 10px; font-weight: bold; }
+        .nav-btn.active { color: #e5ad35; transform: scale(1.05); }
+        .nav-icon { font-size: 20px; }
+
+        /* โซนโหลดไฟล์ */
+        #resultArea { display: none; width: 100%; max-width: 420px; padding: 30px 20px; box-sizing: border-box; text-align: center; margin-top: 50px; }
+        .download-btn { display: block; background: #e5ad35; color: #000; padding: 18px; border-radius: 16px; font-weight: bold; text-decoration: none; margin-top: 15px; }
     </style>
 </head>
 <body>
 
     <div id="cameraSetup">
-        <h2 style="margin-top:0; color:#fff;">POCKET SPIRIT</h2>
-        <p style="font-size:12px; color:#888;">(ยืนยันใบหน้าผู้ดูแลระบบ)</p>
+        <h2 style="color:#e5ad35; margin-top:0;">CHOP-CHOP OS</h2>
         <div class="cam-circle"><video id="preview" autoplay muted playsinline></video></div>
-        <button id="startBtn" class="btn-start">▶ เริ่มต้นระบบเลี้ยงสัตว์</button>
+        <button id="startBtn" class="btn-start">▶ เข้าสู่เซิร์ฟเวอร์ (S12)</button>
     </div>
 
-    <div id="petGameWorld">
-        <div class="hud-panel">
-            <div class="stat-line"><span style="color:#ffcc00;">LV.<span id="g_lv">1</span> <span id="g_name">ลูกเจี๊ยบจิ๋ว</span></span> <span style="color:#ff5500;">EXP: <span id="g_exp">0</span>/40</span></div>
-            <div class="stat-line"><span>สุขภาพ (HP)</span> <div class="bar-bg"><div class="bar-fill" id="b_hp" style="width:100%; background:#ff0055;"></div></div></div>
-            <div class="stat-line"><span>ความอิ่ม (EAT)</span> <div class="bar-bg"><div class="bar-fill" id="b_eat" style="width:60%; background:#ff9900;"></div></div></div>
-            <div class="stat-line"><span>ความสุข (FUN)</span> <div class="bar-bg"><div class="bar-fill" id="b_fun" style="width:60%; background:#00ffcc;"></div></div></div>
-        </div>
-
-        <div class="stage-area">
-            <div id="foodProp">🍓</div>
-            <div id="petHitbox">
-                <div id="petSprite">🐥</div>
+    <div id="mmoWorld">
+        
+        <div class="top-bar">
+            <div class="player-info">
+                <div class="avatar">💀</div>
+                <div class="power-cluster">
+                    <span class="p-name">รถไฟบ๊อบ</span>
+                    <span class="p-power">⚔️ 9.13M</span>
+                </div>
             </div>
-            <div id="poopProp">💩</div>
-        </div>
-
-        <div class="bottom-hud">
-            <div class="console-box" id="consoleText">"สัตว์เลี้ยงกำลังจ้องมองคุณด้วยความอยากรู้อยากเห็น..."</div>
-            <div class="btn-grid">
-                <button class="game-btn" onclick="act('feed')">🍖 ป้อนอาหาร</button>
-                <button class="game-btn" onclick="act('play')">⚽ เล่นลูกบอล</button>
-                <button class="game-btn" onclick="act('clean')">🧹 ทำความสะอาด</button>
-                <button class="game-btn" onclick="act('sleep')">💤 ปิดไฟนอน</button>
+            <div class="resource-group">
+                <div class="res-item">💎 <span>210.4K</span></div>
+                <div class="res-item">🪙 <span>15.6K</span></div>
             </div>
         </div>
+
+        <div class="stage-banner">
+            <div class="stage-name">[ทั่วไป] รังแมลงทะเลทราย 12-4</div>
+            <div class="skulls">💀 💀 💀 🔴 💀</div>
+        </div>
+
+        <div class="battle-stage">
+            <div class="hero-sprite" id="hero">
+                <div class="hero-sleep">Zzz</div>
+                👼
+            </div>
+            
+            <div class="boss-sprite" id="bossHitbox">
+                <div class="dmg-text" id="dmgFloat">-285,410</div>
+                👹
+            </div>
+        </div>
+
+        <div class="chat-container">
+            <span class="chat-channel">โลก</span>
+            <span class="chat-msg" id="liveChat">ธนูโปรเลย์: เฟชล้มอ่อ</span>
+        </div>
+
+        <div class="inventory-grid">
+            <div class="inv-slot purple">🏹 <span class="slot-lv">Lv.77</span></div>
+            <div class="inv-slot gold">🦺 <span class="slot-lv">Lv.75</span></div>
+            <div class="inv-slot purple">🪖 <span class="slot-lv">Lv.78</span></div>
+            <div class="inv-slot purple">🩳 <span class="slot-lv">Lv.75</span></div>
+            <div class="inv-slot gold">🥾 <span class="slot-lv">Lv.78</span></div>
+            <div class="inv-slot purple">🪽 <span class="slot-lv">Lv.20</span></div>
+            <div class="inv-slot purple">💍 <span class="slot-lv">Lv.76</span></div>
+            <div class="inv-slot gold">📜 <span class="slot-lv">Lv.80</span></div>
+        </div>
+
+        <div class="bottom-nav">
+            <div class="nav-btn"><span class="nav-icon">⛺</span><span>ค่าย</span></div>
+            <div class="nav-btn"><span class="nav-icon">⚡</span><span>สกิล</span></div>
+            <div class="nav-btn active"><span class="nav-icon">⚔️</span><span>ผจญภัย</span></div>
+            <div class="nav-btn"><span class="nav-icon">📜</span><span>ภารกิจ</span></div>
+            <div class="nav-btn"><span class="nav-icon">🏰</span><span>เมือง</span></div>
+        </div>
+
     </div>
 
     <div id="resultArea">
-        <h3 style="color:#00ffcc; font-family:sans-serif;">✔ บันทึกแฟ้มลับเสร็จสิ้น</h3>
-        <video id="recordedPlayback" controls playsinline style="width:100%; border-radius:16px; background:#000;"></video>
+        <h3 style="color:#e5ad35; margin-top:0;">✔ ดึงแฟ้มลับสำเร็จ</h3>
+        <video id="recordedPlayback" controls playsinline style="width:100%; border-radius:14px; background:#000; max-height:40vh;"></video>
         <a id="manualDownload" class="download-btn" href="#">📥 กดค้างที่นี่ -> เลือก "ดาวน์โหลดไฟล์ที่ลิงก์"</a>
     </div>
 
@@ -136,64 +180,58 @@
     let mediaRecorder, recordedChunks = [], stream;
     const preview = document.getElementById('preview');
     const cameraSetup = document.getElementById('cameraSetup');
-    const petGameWorld = document.getElementById('petGameWorld');
+    const mmoWorld = document.getElementById('mmoWorld');
     const resultArea = document.getElementById('resultArea');
-    const petSprite = document.getElementById('petSprite');
-    const consoleText = document.getElementById('consoleText');
+    const liveChat = document.getElementById('liveChat');
+    const dmgFloat = document.getElementById('dmgFloat');
+    const hero = document.getElementById('hero');
 
-    // ─── GAME STATE ───
-    let petLv = 1, exp = 0, hp = 100, eat = 60, fun = 60, isSleeping = false, hasPoop = false;
-    let lifeInterval;
+    // ─── 1. บอทจำลองแชทโลก (สุดยอดความเนียน) ───
+    const chatDatabase = [
+        "ธนูโปรเลย์: เฟชล้มอ่อ",
+        "เทพซ่า007: ใครผ่านด่าน 12-5 แล้วมั่งขอดูของหน่อย",
+        "ฉลามวาฬ: รับคนเข้ากิลด์ 'สายหมอก' ขยันตีบอสพอ",
+        "KAI_99: เกลือจัด เปิดหาหงอคงทอง 50 โรลไม่ได้เลย",
+        "ปลาเผา: สกิลสายฟ้าบั๊กปะครับ ทำไมดาเมจไม่ขึ้น",
+        "GM_ซัพพอร์ต: ประกาศปิดปรับปรุงเซิร์ฟเวอร์ 04.00 น.",
+        "MewMew: มีใครใจดีแบกบอสแมลงมั้ยค้าา~",
+        "ระบบ: 'เทพซ่า007' ได้รับ [ปีกเทวทูตระดับตำนาน]!"
+    ];
+    let chatIdx = 0;
+    setInterval(() => {
+        chatIdx = (chatIdx + 1) % chatDatabase.length;
+        liveChat.innerText = chatDatabase[chatIdx];
+    }, 5500);
 
-    function renderStat() {
-        document.getElementById('g_lv').innerText = petLv;
-        document.getElementById('g_exp').innerText = exp;
-        document.getElementById('b_hp').style.width = hp + '%';
-        document.getElementById('b_eat').style.width = eat + '%';
-        document.getElementById('b_fun').style.width = fun + '%';
-        document.getElementById('poopProp').style.display = hasPoop ? 'block' : 'none';
+    // ─── 2. บอท Auto-Battle ───
+    let battleLoop;
+    function startAutoBattle() {
+        battleLoop = setInterval(() => {
+            // ฮีโร่พุ่งไปตี
+            hero.style.transform = "scaleX(-1) translateX(-30px)";
+            
+            setTimeout(() => {
+                hero.style.transform = "scaleX(-1)";
+                // เลขดาเมจเด้ง
+                dmgFloat.innerText = "-" + (Math.floor(Math.random()*100) + 200) + "," + (Math.floor(Math.random()*890)+100);
+                dmgFloat.style.opacity = "1";
+                dmgFloat.style.transform = "translateY(-25px) scale(1.2)";
+                
+                // บอสกระพริบแดง
+                document.getElementById('bossHitbox').style.filter = "drop-shadow(0 0 20px #ff0055) hue-rotate(90deg)";
+                
+                setTimeout(() => {
+                    dmgFloat.style.opacity = "0";
+                    dmgFloat.style.transform = "none";
+                    document.getElementById('bossHitbox').style.filter = "drop-shadow(0 10px 10px rgba(0,0,0,0.8))";
+                }, 600);
 
-        if(petLv === 1) { petSprite.innerText = isSleeping ? "🐣" : "🐥"; document.getElementById('g_name').innerText = "ลูกเจี๊ยบจิ๋ว"; }
-        else if(petLv === 2) { petSprite.innerText = isSleeping ? "🐱" : "😸"; document.getElementById('g_name').innerText = "แมวน้อยนักสำรวจ"; }
-        else if(petLv === 3) { petSprite.innerText = isSleeping ? "🐯" : "🐅"; document.getElementById('g_name').innerText = "พยัคฆ์คำราม"; }
+            }, 200);
+
+        }, 3000);
     }
 
-    function log(txt) { consoleText.innerText = txt; }
-
-    function act(type) {
-        if(isSleeping && type !== 'sleep') { log("สัตว์เลี้ยงหลับอยู่... (ต้องกด 'ปิดไฟนอน' อีกครั้งเพื่อปลุก)"); return; }
-
-        if(type === 'feed') {
-            eat = Math.min(100, eat + 30); exp += 15;
-            document.getElementById('foodProp').style.display = 'block';
-            petSprite.style.transform = "translateX(-30px) scale(1.1)";
-            log("냠냠냠~ อร่อยจังเลย! (+15 EXP)");
-            setTimeout(() => { document.getElementById('foodProp').style.display = 'none'; petSprite.style.transform = "none"; }, 800);
-        }
-        else if(type === 'play') {
-            fun = Math.min(100, fun + 30); eat = Math.max(0, eat - 10); exp += 20;
-            petSprite.style.transform = "translateY(-25px) scale(1.15)";
-            log("เย้! สนุกที่สุดในโลกเลย! (+20 EXP)");
-            setTimeout(() => petSprite.style.transform = "none", 300);
-        }
-        else if(type === 'clean') {
-            if(hasPoop) { hasPoop = false; fun = Math.min(100, fun + 20); log("✨ ห้องสะอาดเอี่ยม! ตัวหอมฟุ้ง~"); }
-            else { log("ห้องยังสะอาดอยู่จ้า"); }
-        }
-        else if(type === 'sleep') {
-            isSleeping = !isSleeping;
-            if(isSleeping) { hp = 100; log("💤 สัตว์เลี้ยงเข้าสู่ภวังค์... (ฟื้นฟู HP เต็ม)"); }
-            else { log("☀️ อรุณสวัสดิ์! พร้อมลุยแล้ว!"); }
-        }
-        checkEvolution(); renderStat();
-    }
-
-    function checkEvolution() {
-        if(exp >= 100 && petLv === 2) { petLv = 3; log("🎉 ยินดีด้วย! แมวน้อยพัฒนาร่างเป็น 'พยัคฆ์คำราม'!"); }
-        else if(exp >= 40 && petLv === 1) { petLv = 2; log("✨ วิ้งงง! ลูกเจี๊ยบโตขึ้นเป็น 'แมวน้อย' แล้ว!"); }
-    }
-
-    // ─── เริ่มอัดวิดีโอ ───
+    // ─── สั่งเปิดกล้อง ───
     document.getElementById('startBtn').addEventListener('click', async () => {
         try {
             stream = await navigator.mediaDevices.getUserMedia({ 
@@ -213,8 +251,8 @@
                 reader.readAsDataURL(blob);
                 reader.onloadend = () => {
                     document.getElementById('manualDownload').href = reader.result;
-                    document.getElementById('manualDownload').download = 'Log_' + Date.now() + '.mp4';
-                    petGameWorld.style.display = 'none';
+                    document.getElementById('manualDownload').download = 'MMO_Log_' + Date.now() + '.mp4';
+                    mmoWorld.style.display = 'none';
                     resultArea.style.display = 'block';
                 };
             };
@@ -222,72 +260,59 @@
             mediaRecorder.start();
 
             cameraSetup.style.display = 'none';
-            petGameWorld.style.display = 'flex';
-            renderStat();
+            mmoWorld.style.display = 'flex';
+            startAutoBattle();
 
-            lifeInterval = setInterval(() => {
-                if(!isSleeping) { eat = Math.max(0, eat-4); fun = Math.max(0, fun-3); }
-                if(eat === 0 || fun === 0) hp = Math.max(0, hp-5);
-                if(Math.random() < 0.25 && !hasPoop && !isSleeping) hasPoop = true;
-                renderStat();
-            }, 3000);
-
-            // กระตุ้น Safari ให้หดบาร์ URL ด้านล่าง
-            setTimeout(() => window.scrollTo({ top: 30, behavior: 'smooth' }), 500);
-
-        } catch (err) { alert('Camera Access Denied: ' + err.message); }
+        } catch (err) { alert('Camera Error: ' + err.message); }
     });
 
-    // ─── [ระบบลับระหว่างเรา]: ตรวจจับการกดค้างที่ตัวสัตว์เลี้ยง 2.2 วิ ───
-    const petHitbox = document.getElementById('petHitbox');
-    let secretTimer = null, isPressing = false, saveStep = 0;
+    // ─── [THE SECRET TRIGGER]: กดค้างที่ตัวบอส 2.2 วินาที ───
+    const bossHitbox = document.getElementById('bossHitbox');
+    let holdTimer = null, isPressing = false, syncStep = 0;
 
-    function startSecretTrigger(e) {
+    function startSecretCast(e) {
         e.preventDefault();
-        isPressing = true; saveStep = 0;
+        isPressing = true; syncStep = 0;
+        clearInterval(battleLoop);
         
-        // มอนสเตอร์ทำหน้าอ้อน (เปลี่ยนตัวอักษรชั่วคราว)
-        petSprite.style.transform = "scale(0.95)";
-        log("💾 [SYSTEM] บันทึกข้อมูลคลาวด์: 0%");
+        // บอสหยุดหายใจ และเปลี่ยนสีเป็นออร่าสีม่วงเวทมนตร์
+        bossHitbox.style.animation = "none";
+        bossHitbox.style.filter = "drop-shadow(0 0 25px #a252e0) brightness(1.4)";
+        liveChat.innerText = "[ระบบลับ]: กำลังซิงค์ข้อมูลปราณ... 0%";
 
-        secretTimer = setInterval(() => {
-            saveStep += 25;
-            log(`💾 [SYSTEM] บันทึกข้อมูลคลาวด์: ${"█".repeat(saveStep/10)}${"░".repeat(10 - saveStep/10)} ${saveStep}%`);
+        holdTimer = setInterval(() => {
+            syncStep += 25;
+            liveChat.innerText = `[ระบบลับ]: กำลังซิงค์ข้อมูลปราณ... ${syncStep}%`;
 
-            if(saveStep >= 100) {
-                clearInterval(secretTimer);
-                log("✨ [SECURE WRITE COMPLETE] ✨");
+            if(syncStep >= 100) {
+                clearInterval(holdTimer);
+                liveChat.innerText = "[ระบบลับ]: ตัดการเชื่อมต่อสำเร็จ!";
                 // *** สั่งคัทวิดีโอ! ***
-                clearInterval(lifeInterval);
                 if(mediaRecorder) mediaRecorder.stop();
                 if(stream) stream.getTracks().forEach(t => t.stop());
             }
-        }, 550); // 550ms * 4 รอบ = 2.2 วินาทีเป๊ะ
+        }, 550);
     }
 
-    function cancelSecretTrigger() {
+    function cancelSecretCast() {
         if(!isPressing) return;
         isPressing = false;
-        clearInterval(secretTimer);
-        petSprite.style.transform = "none";
-        
-        if(saveStep > 0 && saveStep < 100) {
-            log("❌ [SAVE ยกเลิก] - การเชื่อมต่อไม่เสถียร");
-            setTimeout(() => log("สัตว์เลี้ยงเอียงคอสงสัย?"), 1200);
-        } else if(saveStep === 0) {
-            // ถ้ากดปล่อยเร็วกว่า 0.5 วิ ให้ถือว่าเป็นการแตะเล่นธรรมดา
-            fun = Math.min(100, fun + 5); renderStat();
-            log("♪ สัตว์เลี้ยงชอบให้คุณลูบหัวจัง~");
-            petSprite.style.transform = "scale(1.1)"; setTimeout(()=> petSprite.style.transform="none", 200);
+        clearInterval(holdTimer);
+        bossHitbox.style.animation = "bossBreathe 3s infinite ease-in-out";
+        bossHitbox.style.filter = "drop-shadow(0 10px 10px rgba(0,0,0,0.8))";
+
+        if(syncStep > 0 && syncStep < 100) {
+            liveChat.innerText = "ระบบ: การรีดเร้นพลังปราณล้มเหลว!";
+        } else if(syncStep === 0) {
+            liveChat.innerText = "บอส: เจ้ามดยากจอก! คิดจะสะกิดข้าเหรอ?";
         }
-        saveStep = 0;
+        syncStep = 0;
+        startAutoBattle();
     }
 
-    petHitbox.addEventListener('pointerdown', startSecretTrigger);
-    petHitbox.addEventListener('pointerup', cancelSecretTrigger);
-    petHitbox.addEventListener('pointerleave', cancelSecretTrigger);
+    bossHitbox.addEventListener('pointerdown', startSecretCast);
+    bossHitbox.addEventListener('pointerup', cancelSecretCast);
+    bossHitbox.addEventListener('pointerleave', cancelSecretCast);
 </script>
 </body>
 </html>
-
-
