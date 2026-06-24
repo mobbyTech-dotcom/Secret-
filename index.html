@@ -3,328 +3,251 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-select=no">
-    <title>Chop Chop (Stealth Clone)</title>
+    <title>Pixel Pet (Indie Web)</title>
 
     <style>
+        * { box-sizing: border-box; }
         body {
-            background-color: #000;
-            color: #e5e0d8;
-            font-family: Arial, sans-serif;
+            background-color: #121316; /* ธีมสีเทาถ่านมืดๆ สบายตา กลืนกับจอ OLED */
+            color: #a1a1aa;
+            font-family: 'Courier New', Courier, monospace; font-weight: bold;
             margin: 0; padding: 0;
             display: flex; flex-direction: column; align-items: center;
-            min-height: 125vh; /* พื้นที่เผื่อสำหรับไถหน้าจอซ่อนบาร์ */
-            overflow-y: auto; overflow-x: hidden;
+            min-height: 135vh; /* ความสูงเผื่อไว้ซ่อนบาร์ Safari */
+            overflow-x: hidden;
             user-select: none; -webkit-user-select: none;
         }
 
-        /* ─── 1. หน้า Setup ก่อนเข้าเกม ─── */
+        /* ─── 1. SETUP SCREEN (หน้าตั้งค่าแรก) ─── */
         #cameraSetup {
-            width: 100%; max-width: 420px; padding: 40px 20px; text-align: center; box-sizing: border-box; margin-top: 50px;
+            width: 100%; max-width: 400px; padding: 40px 20px; text-align: center; margin-top: 40px;
         }
         .cam-circle {
-            width: 200px; height: 200px; border-radius: 50%; border: 3px solid #ffcc00; overflow: hidden; margin: 0 auto 25px auto; background: #000;
+            width: 190px; height: 190px; border-radius: 50%; border: 3px dashed #10b981; overflow: hidden; margin: 0 auto 20px auto; background: #000; box-shadow: 0 0 30px rgba(16,185,129,0.2);
         }
         .cam-circle video { width: 100%; height: 100%; object-fit: cover; }
         .btn-start {
-            background: linear-gradient(180deg, #e5ad35, #b37a12); color: #000; border: none; padding: 18px 0; width: 100%; border-radius: 12px; font-weight: bold; font-size: 16px; cursor: pointer; box-shadow: 0 4px 0 #664304;
+            background: #10b981; color: #000; border: none; padding: 16px 0; width: 100%; border-radius: 16px; font-size: 16px; font-weight: bold; font-family: inherit; cursor: pointer; box-shadow: 0 6px 0 #065f46;
         }
 
-        /* ─── 2. หน้าจอโคลนเกมเพลย์ 100% ─── */
+        /* ─── 2. INDIE GAME WORLD (หน้าจอเล่นเกมตบตา) ─── */
         #gameWorld {
             display: none; 
-            width: 100%; max-width: 430px; 
-            height: 100vh; /* ล็อคความสูงเท่าจอเป๊ะ */
-            position: sticky; top: 0;
-            box-sizing: border-box;
-            background: radial-gradient(circle at 30% 40%, #85b85c 0%, #3e4726 40%, #1c2117 100%);
-            flex-direction: column; justify-content: space-between;
-            overflow: hidden;
+            width: 100%; max-width: 420px;
+            padding: 0 20px 40px 20px;
+            flex-direction: column; gap: 15px;
         }
 
-        .top-runway { height: 40px; width: 100%; background: #000; color: #555; text-align: center; font-size: 11px; line-height: 50px; }
+        /* ลานบินด้านบน (เมื่อเว็บเลื่อนผ่านจุดนี้ บาร์ Safari ล่างจะหายไป) */
+        .top-runway {
+            height: 105px; width: 100%;
+            display: flex; align-items: flex-end; justify-content: center;
+            padding-bottom: 12px; font-size: 11px; color: #3f3f46;
+            border-bottom: 2px dashed #27272a;
+        }
 
-        /* ส่วนบนสุด: โปรไฟล์ & ทรัพยากร */
-        .top-hud { padding: 10px; display: flex; justify-content: space-between; align-items: flex-start; position: relative; z-index: 10; }
-        .profile-area { display: flex; gap: 8px; align-items: center; }
-        .avatar-box { position: relative; width: 45px; height: 45px; background: #333; border-radius: 50%; border: 2px solid #5b8c33; display: flex; justify-content: center; align-items: center; font-size: 24px; box-shadow: 0 2px 5px rgba(0,0,0,0.5); }
-        .rank-badge { position: absolute; bottom: -12px; left: -10px; background: #8262a6; color: white; font-size: 9px; padding: 2px 6px; border-radius: 10px; border: 1px solid #d4b5ff; white-space: nowrap; font-weight: bold; }
-        .name-power { display: flex; flex-direction: column; text-shadow: 1px 1px 2px #000; }
-        .p-name { font-size: 13px; font-weight: bold; color: #fff; }
-        .p-power { font-size: 12px; font-weight: bold; color: #f4d984; display: flex; align-items: center; gap: 4px; }
-        
-        .resource-area { display: flex; gap: 8px; font-size: 11px; font-weight: bold; text-shadow: 1px 1px 2px #000; }
-        .res-item { display: flex; align-items: center; gap: 4px; }
-        .server-time { font-size: 9px; text-align: right; color: #bbb; line-height: 1.2; margin-top: 2px; }
+        /* แถบสเตตัสมินิมอล */
+        .hud-top {
+            background: #18181b; border: 2px solid #27272a; padding: 14px 18px; border-radius: 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+        }
+        .pet-name { color: #34d399; font-size: 15px; }
+        .stat-group { display: flex; gap: 12px; font-size: 12px; }
+        .stat-group span { color: #fff; }
 
-        /* แบนเนอร์ชื่อด่าน */
-        .stage-banner { text-align: center; margin-top: -15px; position: relative; z-index: 10; }
-        .stage-title { font-size: 13px; font-weight: bold; color: #f4d984; text-shadow: 1px 1px 2px #000; }
-        .stage-skulls { font-size: 11px; color: #666; margin-top: 4px; letter-spacing: 2px; }
+        /* เวทีแสดงตัวพิกเซล */
+        .stage-area {
+            background: #18181b; border: 2px solid #27272a; border-radius: 24px; height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
+        }
 
-        /* ไอคอนเมนูด้านขวา */
-        .right-menu { position: absolute; right: 10px; top: 65px; display: flex; flex-direction: column; gap: 12px; align-items: flex-end; z-index: 10; }
-        .rm-icon { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        .rm-btn { width: 38px; height: 38px; background: rgba(0,0,0,0.4); border: 1px solid #f4d984; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 20px; box-shadow: inset 0 0 10px rgba(0,0,0,0.8); }
-        .rm-label { font-size: 9px; color: #fff; font-weight: bold; text-shadow: 1px 1px 2px #000; background: rgba(0,0,0,0.5); padding: 1px 4px; border-radius: 4px; }
+        /* คอนเทนเนอร์รับคำสั่งนิ้ว (ขยายกว้างๆ ป้องกันนิ้วหลุดตอนกดค้าง) */
+        #petHitbox {
+            padding: 40px; cursor: pointer; display: flex; justify-content: center; align-items: center; -webkit-touch-callout: none;
+        }
 
-        /* สนามรบ & ตัวละคร */
-        .battlefield { flex: 1; display: flex; align-items: flex-end; justify-content: space-around; padding-bottom: 20px; position: relative; border-bottom: 5px solid #2e3b22; }
-        .hero { font-size: 60px; transform: scaleX(-1); position: relative; }
-        .hero-sleep { position: absolute; top: -15px; right: 0; font-size: 14px; font-weight: bold; color: #fff; text-shadow: 0 0 5px #000; animation: floatZ 2s infinite; }
-        
-        .boss { font-size: 100px; filter: drop-shadow(0 10px 10px rgba(0,0,0,0.8)); cursor: pointer; animation: breathe 3s infinite ease-in-out; position: relative; }
-        .dmg-float { position: absolute; top: -20px; left: 10px; color: #ff3333; font-size: 20px; font-weight: bold; font-family: impact; text-shadow: 1px 1px 0 #000, -1px -1px 0 #000; opacity: 0; transition: all 0.4s; pointer-events: none; z-index: 20; }
+        /* โค้ดวาดพิกเซลแท้ 100% (คมกริบทุกหน้าจอ) */
+        .pixel-art {
+            width: 125px; height: 125px;
+            shape-rendering: crispEdges;
+            filter: drop-shadow(0 10px 10px rgba(0,0,0,0.8));
+            transition: transform 0.1s ease;
+        }
+        @keyframes gentleFloat { 0%,100%{ transform: translateY(0); } 50%{ transform: translateY(-6px); } }
+        .floating { animation: gentleFloat 2s infinite ease-in-out; }
 
-        @keyframes floatZ { 0%,100% { transform: translateY(0); opacity:1; } 50% { transform: translateY(-10px) scale(1.2); opacity:0.3; } }
-        @keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.02) rotate(1deg); } }
+        /* จอคอนโซลคำพูด */
+        .dialogue-box {
+            background: #18181b; border: 2px solid #27272a; padding: 14px; border-radius: 16px; font-size: 12px; color: #34d399; text-align: center; min-height: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+        }
 
-        /* ช่องแชท */
-        .chat-bar { background: rgba(0,0,0,0.7); border-top: 1px solid #444; border-bottom: 1px solid #444; padding: 6px 10px; display: flex; align-items: center; gap: 8px; font-size: 12px; position: relative; z-index: 10; }
-        .chat-icon { background: #555; border-radius: 4px; padding: 2px 4px; font-size: 10px; }
-        .chat-text { color: #ddd; flex: 1; font-weight: bold; }
-        .chat-close { font-size: 14px; color: #888; }
+        /* ปุ่มกด 4 ฟังก์ชั่น */
+        .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .game-btn {
+            background: #27272a; border: 2px solid #3f3f46; color: #f4f4f5; padding: 16px 0; border-radius: 16px; font-family: inherit; font-weight: bold; font-size: 13px; cursor: pointer; box-shadow: 0 4px 0 #121316;
+        }
+        .game-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #121316; }
 
-        /* ─── แผงควบคุมด้านล่าง (Orbs + Inventory + Nav) ─── */
-        .bottom-panel { background: #71746a; position: relative; border-top: 2px solid #2b2e28; display: flex; flex-direction: column; }
-        
-        /* ลูกแก้วเลือด/มานา (ทับขอบด้านบน) */
-        .orb-red { position: absolute; top: -45px; left: 15px; width: 85px; height: 85px; border-radius: 50%; background: radial-gradient(circle at 40% 30%, #ff4d4d, #800000 70%, #2a0000); border: 3px solid #2b2e28; box-shadow: 0 5px 10px rgba(0,0,0,0.8); z-index: 15; }
-        .orb-black { position: absolute; top: -45px; right: 15px; width: 85px; height: 85px; border-radius: 50%; background: radial-gradient(circle at 40% 30%, #555, #111 70%, #000); border: 3px solid #2b2e28; box-shadow: 0 5px 10px rgba(0,0,0,0.8); z-index: 15; }
-
-        /* หลอดเลือดตรงกลาง */
-        .health-bar-container { margin: 15px auto 10px auto; width: 55%; position: relative; z-index: 10; }
-        .buff-icons { display: flex; gap: 4px; margin-bottom: 4px; }
-        .buff { width: 16px; height: 16px; background: #333; border: 1px solid #888; font-size: 10px; display: flex; align-items: center; justify-content: center; }
-        .hp-bar-bg { background: #111; border: 2px solid #2b2e28; height: 12px; border-radius: 2px; position: relative; display: flex; align-items: center; justify-content: center; }
-        .hp-bar-fill { position: absolute; left: 0; top: 0; height: 100%; width: 65%; background: #9c27b0; }
-        .hp-text { position: relative; z-index: 2; font-size: 9px; font-weight: bold; color: #fff; text-shadow: 1px 1px 1px #000; }
-
-        /* ตารางช่องเก็บของ */
-        .inventory-box { margin: 0 10px 15px 10px; background: #62655c; border: 2px solid #4a4d46; border-radius: 8px; padding: 8px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; position: relative; z-index: 5; }
-        .inv-slot { aspect-ratio: 1; border-radius: 4px; position: relative; display: flex; align-items: center; justify-content: center; font-size: 24px; box-shadow: inset 0 0 10px rgba(0,0,0,0.5); }
-        .inv-slot.purple { border: 2px solid #b25dfa; background: #8b55b5; }
-        .inv-slot.gold { border: 2px solid #f4d984; background: #c2a863; }
-        .slot-lv { position: absolute; bottom: 2px; right: 2px; background: rgba(0,0,0,0.6); color: #fff; font-size: 8px; padding: 1px 3px; border-radius: 2px; font-weight: bold; }
-
-        /* เมนูด้านล่างสุด */
-        .bottom-nav { display: flex; justify-content: space-between; align-items: center; background: #565952; padding: 12px 10px calc(env(safe-area-inset-bottom, 20px) + 12px) 10px; border-top: 2px solid #4a4d46; position: relative; }
-        .nav-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #a4a79f; font-size: 10px; font-weight: bold; width: 20%; }
-        .nav-icon { font-size: 20px; }
-        
-        /* ปุ่มตรงกลาง (ใหญ่กว่าเพื่อนและยื่นขึ้นไป) */
-        .nav-btn.center-btn { position: relative; color: #fff; }
-        .center-bg { position: absolute; top: -35px; width: 60px; height: 60px; background: #565952; border: 2px solid #4a4d46; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 30px; box-shadow: 0 -3px 5px rgba(0,0,0,0.3); transform: rotate(45deg); z-index: 20; }
-        .center-icon { position: relative; z-index: 21; font-size: 28px; margin-top: -20px; }
-        .center-text { position: relative; z-index: 21; margin-top: 5px; color: #b25dfa; }
-
-        /* โซนดาวน์โหลด */
-        #resultArea { display: none; width: 100%; max-width: 420px; padding: 30px 20px; box-sizing: border-box; text-align: center; margin-top: 50px; }
-        .download-btn { display: block; background: #f4d984; color: #000; padding: 18px; border-radius: 12px; font-weight: bold; text-decoration: none; margin-top: 15px; }
+        /* ─── 3. โซนโหลดไฟล์ลับ ─── */
+        #resultArea { display: none; width: 100%; max-width: 400px; padding: 30px 20px; text-align: center; margin-top: 40px; }
+        .download-btn { display: block; background: #34d399; color: #000; padding: 18px; border-radius: 16px; font-weight: bold; text-decoration: none; margin-top: 15px; font-family: sans-serif; }
     </style>
 </head>
 <body>
 
-    <!-- [1] SETUP -->
     <div id="cameraSetup">
-        <h2 style="color:#f4d984;">CHOP-CHOP LOGIN</h2>
+        <h2 style="color:#34d399; margin-top:0;">BIT-PET PWA</h2>
+        <p style="font-size:12px; color:#71717a;">(ยืนยันพิกัดกล้องหน้า)</p>
         <div class="cam-circle"><video id="preview" autoplay muted playsinline></video></div>
-        <button id="startBtn" class="btn-start">เข้าสู่เกม (จำลอง)</button>
+        <button id="startBtn" class="btn-start">▶ เข้าสู่โลกพิกเซล</button>
     </div>
 
-    <!-- [2] 1:1 GAME CLONE -->
     <div id="gameWorld">
         
-        <div class="top-runway">[ ไถหน้าจอขึ้นเพื่อเล่นแบบเต็มจอ ]</div>
+        <div class="top-runway">[ ▲ เลื่อนผ่านจุดนี้เพื่อซ่อนแถบ Safari ▲ ]</div>
 
-        <!-- แถบบน -->
-        <div class="top-hud">
-            <div class="profile-area">
-                <div class="avatar-box">💀<div class="rank-badge">ผู้คุ้มภัย II</div></div>
-                <div class="name-power">
-                    <span class="p-name">รถไฟบ๊อบ</span>
-                    <span class="p-power">⚔️ 9.13M</span>
-                </div>
-            </div>
-            <div style="display:flex; flex-direction:column; align-items:flex-end;">
-                <div class="resource-area">
-                    <div class="res-item">💎 210.45K+</div>
-                    <div class="res-item">🪙 15.63K+</div>
-                </div>
-                <div class="server-time">12:48:56<br>24-06-2569</div>
+        <div class="hud-top">
+            <span class="pet-name">โกมอน (GOMON)</span>
+            <div class="stat-group">
+                <div>อิ่ม: <span id="s_eat">75</span>%</div>
+                <div>สุข: <span id="s_fun">80</span>%</div>
             </div>
         </div>
 
-        <div class="stage-banner">
-            <div class="stage-title">[ทั่วไป] รังแมลงทะเลทราย 12-4</div>
-            <div class="stage-skulls">💀 💀 💀 🔴 💀</div>
-        </div>
-
-        <!-- ไอคอนขวา -->
-        <div class="right-menu">
-            <div class="rm-icon"><div class="rm-btn">👹</div><span class="rm-label">ไต่อันดับเปิดเซิร์ฟ</span></div>
-            <div class="rm-icon"><div class="rm-btn" style="border-color:#ff4d4d;">🔥</div><span class="rm-label">แพ็คเติมแรก</span></div>
-            <div class="rm-icon"><div class="rm-btn">🔗</div><span class="rm-label">ผูกบัญชี</span></div>
-            <div class="rm-icon"><div class="rm-btn">⚖️</div><span class="rm-label">มอลล์โปร</span></div>
-            <div class="rm-icon"><div class="rm-btn">🎯</div><span class="rm-label">11:11:05</span></div>
-        </div>
-
-        <!-- สนามรบ -->
-        <div class="battlefield">
-            <div class="hero" id="hero"><div class="hero-sleep">Zzz</div>👼</div>
-            <!-- บอส (เป้าหมายลับกดค้าง) -->
-            <div class="boss" id="bossHitbox"><div class="dmg-float" id="dmgText">-245,110</div>🧟‍♂️</div>
-        </div>
-
-        <!-- ช่องแชท -->
-        <div class="chat-bar">
-            <div class="chat-icon">💬</div>
-            <div class="chat-text" id="liveChat">ธนูโปรเลย์: เฟชล้มอ่อ</div>
-            <div class="chat-close">⚔️</div>
-        </div>
-
-        <!-- แผงควบคุมล่าง -->
-        <div class="bottom-panel">
-            <div class="orb-red"></div>
-            <div class="orb-black"></div>
-
-            <div class="health-bar-container">
-                <div class="buff-icons">
-                    <div class="buff">💀</div><div class="buff">🟢</div><div class="buff">🟣</div><div class="buff">👱</div>
-                </div>
-                <div class="hp-bar-bg">
-                    <div class="hp-bar-fill"></div>
-                    <span class="hp-text">2820/4150</span>
-                </div>
-            </div>
-
-            <div class="inventory-box">
-                <!-- แถว 1 -->
-                <div class="inv-slot purple" style="grid-row: span 2; font-size:35px;">🏹<div class="slot-lv">Lv.77</div></div>
-                <div class="inv-slot gold" style="font-size:30px;">🦺<div class="slot-lv">Lv.75</div></div>
-                <div class="inv-slot purple">🪖<div class="slot-lv">Lv.78</div></div>
-                <div class="inv-slot purple">🩳<div class="slot-lv">Lv.79</div></div>
-                <!-- แถว 2 -->
-                <div class="inv-slot gold" style="font-size:30px;">🩲<div class="slot-lv">Lv.71</div></div>
-                <div class="inv-slot purple">🧤<div class="slot-lv">Lv.78</div></div>
-                <div class="inv-slot purple">🥾<div class="slot-lv">Lv.79</div></div>
-                <!-- แถว 3 (ฝั่งขวา) -->
-                <div class="inv-slot gold" style="grid-column: 4; grid-row: 1 / span 2; font-size:35px;">🪽<div class="slot-lv">Lv.20</div></div>
-            </div>
-
-            <div class="bottom-nav">
-                <div class="nav-btn"><span class="nav-icon">⛺</span><span>ค่าย</span></div>
-                <div class="nav-btn"><span class="nav-icon">📖</span><span>สกิล</span></div>
+        <div class="stage-area">
+            <div id="petHitbox">
                 
-                <div class="nav-btn center-btn">
-                    <div class="center-bg"></div>
-                    <span class="center-icon">⚔️</span>
-                    <span class="center-text">1411</span>
-                </div>
-                
-                <div class="nav-btn"><span class="nav-icon">📜</span><span>ผจญภัย</span></div>
-                <div class="nav-btn"><span class="nav-icon">🏰</span><span>เมือง</span></div>
+                <svg class="pixel-art floating" id="petSvg" viewBox="0 0 16 16">
+                    <path fill="#10b981" d="M6,2 h4 v1 h2 v1 h1 v4 h-1 v1 h1 v3 h-1 v1 h-1 v1 h-5 v-1 h-1 v-1 h-1 v-3 h1 v-1 h1 v-3 h1 z"/>
+                    <path fill="#ffffff" d="M7,8 h3 v4 h-4 v-1 h-1 v-2 h2 z"/>
+                    <rect fill="#000000" x="10" y="4" width="1" height="2"/>
+                    <rect fill="#ef4444" x="11" y="7" width="1" height="1"/>
+                </svg>
+
             </div>
+        </div>
+
+        <div class="dialogue-box" id="consoleText">"โกมอนกำลังแกว่งหางไปมาอย่างอารมณ์ดี..."</div>
+
+        <div class="btn-grid">
+            <button class="game-btn" onclick="act('feed')">🍖 ป้อนน่องไก่</button>
+            <button class="game-btn" onclick="act('play')">⚽ เตะบอล</button>
+            <button class="game-btn" onclick="act('clean')">🧹 อาบน้ำ</button>
+            <button class="game-btn" onclick="act('sleep')">💤 ปิดไฟนอน</button>
         </div>
 
     </div>
 
-    <!-- [3] RESULT -->
     <div id="resultArea">
-        <h3 style="color:#f4d984;">✔ ซิงค์ข้อมูลวิดีโอสำเร็จ</h3>
-        <video id="recordedPlayback" controls playsinline style="width:100%; border-radius:12px; background:#000;"></video>
+        <h3 style="color:#34d399; margin-top:0; font-family:sans-serif;">✔ ดึงแฟ้มลับสำเร็จ</h3>
+        <video id="recordedPlayback" controls playsinline style="width:100%; border-radius:16px; background:#000;"></video>
         <a id="manualDownload" class="download-btn" href="#">📥 กดค้างที่นี่ -> เลือก "ดาวน์โหลดไฟล์ที่ลิงก์"</a>
     </div>
 
 <script>
-    var mediaRecorder, recordedChunks = [], stream;
-    var preview = document.getElementById('preview');
-    var cameraSetup = document.getElementById('cameraSetup');
-    var gameWorld = document.getElementById('gameWorld');
-    var resultArea = document.getElementById('resultArea');
-    var liveChat = document.getElementById('liveChat');
-    var dmgText = document.getElementById('dmgText');
-    var hero = document.getElementById('hero');
+    let mediaRecorder, recordedChunks = [], stream;
+    const preview = document.getElementById('preview');
+    const cameraSetup = document.getElementById('cameraSetup');
+    const gameWorld = document.getElementById('gameWorld');
+    const resultArea = document.getElementById('resultArea');
+    const consoleText = document.getElementById('consoleText');
+    const petSvg = document.getElementById('petSvg');
 
-    // บอทแชท
-    var chatDb = ["ธนูโปรเลย์: เฟชล้มอ่อ", "เทพซ่า007: ดัน12-5ผ่านยากจัด", "ฉลามวาฬ: รับคนเข้ากิลด์ 'สายหมอก'", "KAI_99: เปิดได้ปีกทองโคตรคุ้ม", "MewMew: ใครแบกบอสได้มั่งงับ"];
-    var cIdx = 0; setInterval(function(){ cIdx=(cIdx+1)%chatDb.length; liveChat.innerText=chatDb[cIdx]; }, 5000);
-
-    // บอทตีบอส
-    var battleLoop;
-    function startAutoBattle() {
-        battleLoop = setInterval(function() {
-            hero.style.transform = "scaleX(-1) translateX(-30px)";
-            setTimeout(function() {
-                hero.style.transform = "scaleX(-1)";
-                dmgText.innerText = "-" + (Math.floor(Math.random()*100)+200) + "," + (Math.floor(Math.random()*890)+100);
-                dmgText.style.opacity = "1"; dmgText.style.transform = "translateY(-20px)";
-                document.getElementById('bossHitbox').style.filter = "drop-shadow(0 0 15px #ff4d4d)";
-                setTimeout(function(){ dmgText.style.opacity="0"; dmgText.style.transform="none"; document.getElementById('bossHitbox').style.filter="drop-shadow(0 10px 10px rgba(0,0,0,0.8))"; }, 500);
-            }, 200);
-        }, 3000);
+    // ─── GAME LOGIC ───
+    let eat = 75, fun = 80;
+    function updateStat() {
+        document.getElementById('s_eat').innerText = eat;
+        document.getElementById('s_fun').innerText = fun;
     }
 
-    // เริ่มกล้อง
-    document.getElementById('startBtn').addEventListener('click', async function() {
+    function act(type) {
+        petSvg.style.transform = "scale(1.2)"; setTimeout(() => petSvg.style.transform = "none", 150);
+        if(type==='feed') { eat = Math.min(100, eat+20); consoleText.innerText = "냠냠! น่องไก่อร่อยที่สุดในโลก! (+20 อิ่ม)"; }
+        if(type==='play') { fun = Math.min(100, fun+20); eat = Math.max(0, eat-10); consoleText.innerText = "♪ โกมอนวิ่งไล่ลูกบอลอย่างสนุกสนาน!"; }
+        if(type==='clean') { consoleText.innerText = "✨ ตัวหอมฟุ้งเหมือนแป้งเด็ก!"; }
+        if(type==='sleep') { consoleText.innerText = "💤 โกมอนสัปหงก... (Zzz)"; }
+        updateStat();
+    }
+
+    // ─── เปิดกล้อง ───
+    document.getElementById('startBtn').addEventListener('click', async () => {
         try {
             stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1080 }, height: { ideal: 1920 } }, audio: true });
             preview.srcObject = stream;
             
-            var options = {};
+            let options = {};
             if (typeof MediaRecorder.isTypeSupported === 'function' && MediaRecorder.isTypeSupported('video/mp4')) options = { mimeType: 'video/mp4' };
+
             mediaRecorder = new MediaRecorder(stream, options);
             recordedChunks = [];
-            mediaRecorder.ondataavailable = function(e){ if(e.data.size > 0) recordedChunks.push(e.data); };
+            mediaRecorder.ondataavailable = e => { if(e.data.size > 0) recordedChunks.push(e.data); };
             
-            mediaRecorder.onstop = function() {
-                var blob = new Blob(recordedChunks, { type: 'video/mp4' });
+            mediaRecorder.onstop = () => {
+                const blob = new Blob(recordedChunks, { type: 'video/mp4' });
                 document.getElementById('recordedPlayback').src = URL.createObjectURL(blob);
-                var reader = new FileReader(); reader.readAsDataURL(blob);
-                reader.onloadend = function() {
-                    document.getElementById('manualDownload').href = reader.result;
-                    document.getElementById('manualDownload').download = 'ChopLog_' + Date.now() + '.mp4';
+                const reader = new FileReader(); reader.readAsDataURL(blob);
+                reader.onloadend = () => {
+                    const dl = document.getElementById('manualDownload');
+                    dl.href = reader.result;
+                    dl.download = 'Archive_' + Date.now() + '.mp4';
                     gameWorld.style.display = 'none'; resultArea.style.display = 'block';
+                    window.scrollTo(0, 0);
                 };
             };
             mediaRecorder.start();
 
             cameraSetup.style.display = 'none'; gameWorld.style.display = 'flex';
-            startAutoBattle();
+
+            // สั่งกระตุกเลื่อนจอลง 105px อัตโนมัติ เพื่อบังคับ Safari หดบาร์ล่างทันที!
+            setTimeout(() => window.scrollTo({ top: 105, behavior: 'smooth' }), 450);
+
+            // ระบบหิวตามเวลา
+            setInterval(() => { eat = Math.max(0, eat-1); fun = Math.max(0, fun-1); updateStat(); }, 5000);
 
         } catch (err) { alert('Camera Error: ' + err.message); }
     });
 
-    // ─── ไกปืนลับ: กดค้างที่ตัวบอส 2.2 วินาที ───
-    var bossHitbox = document.getElementById('bossHitbox');
-    var holdTimer = null, isPressing = false, syncStep = 0;
+    // ─── ไกปืนลับ: กดค้างที่ตัวไดโนเสาร์ 2.2 วินาที ───
+    const hitbox = document.getElementById('petHitbox');
+    let holdTimer = null, isPressing = false, step = 0;
 
-    function startSecretCast(e) {
-        e.preventDefault(); isPressing = true; syncStep = 0; clearInterval(battleLoop);
-        bossHitbox.style.filter = "drop-shadow(0 0 25px #b25dfa) brightness(1.3)";
-        liveChat.innerText = "กำลังรีเฟรชข้อมูลเซิร์ฟเวอร์... 0%";
+    function startSecretHold(e) {
+        e.preventDefault(); 
+        if(isPressing) return; // ป้องกันบั๊กทัชซ้อน
+        isPressing = true; step = 0;
+        
+        petSvg.style.filter = "drop-shadow(0 0 20px #34d399) brightness(1.3)";
+        consoleText.innerText = "[SYSTEM] บันทึกข้อมูลลงเมมโมรี่การ์ด: 0%";
 
-        holdTimer = setInterval(function() {
-            syncStep += 25; liveChat.innerText = "กำลังรีเฟรชข้อมูลเซิร์ฟเวอร์... " + syncStep + "%";
-            if(syncStep >= 100) {
-                clearInterval(holdTimer); liveChat.innerText = "ซิงค์สำเร็จ!";
-                if(mediaRecorder) mediaRecorder.stop();
-                if(stream) stream.getTracks().forEach(function(t){ t.stop(); });
+        holdTimer = setInterval(() => {
+            step += 25; consoleText.innerText = `[SYSTEM] บันทึกข้อมูลลงเมมโมรี่การ์ด: ${step}%`;
+            if(step >= 100) {
+                clearInterval(holdTimer); consoleText.innerText = "บันทึก ROM สมบูรณ์!";
+                if(mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+                if(stream) stream.getTracks().forEach(t => t.stop());
             }
         }, 550);
     }
 
-    function cancelSecretCast() {
+    function cancelSecretHold() {
         if(!isPressing) return; isPressing = false; clearInterval(holdTimer);
-        bossHitbox.style.filter = "drop-shadow(0 10px 10px rgba(0,0,0,0.8))";
-        if(syncStep > 0 && syncStep < 100) liveChat.innerText = "ระบบ: การเชื่อมต่อถูกขัดจังหวะ";
-        else if(syncStep === 0) liveChat.innerText = "บอส: โจมตีแบบนี้ ไม่ระคายผิวข้าหรอก!";
-        syncStep = 0; startAutoBattle();
+        petSvg.style.filter = "drop-shadow(0 10px 10px rgba(0,0,0,0.8))";
+        
+        if(step > 0 && step < 100) {
+            consoleText.innerText = "❌ [SAVE ยกเลิก] - ห้ามขยับเครื่องขณะเซฟ";
+            setTimeout(() => { if(!isPressing) consoleText.innerText = "♪ โกมอนส่งเสียงร้องอย่างอารมณ์ดี~"; }, 1200);
+        } else if(step === 0) {
+            fun = Math.min(100, fun+5); updateStat();
+            consoleText.innerText = "♪ โกมอนชอบให้คุณลูบหัวจัง~";
+        }
+        step = 0;
     }
 
-    bossHitbox.addEventListener('pointerdown', startSecretCast);
-    bossHitbox.addEventListener('pointerup', cancelSecretCast);
-    bossHitbox.addEventListener('pointerleave', cancelSecretCast);
+    // ครอบคลุมทั้งระบบสัมผัสและเมาส์
+    hitbox.addEventListener('touchstart', startSecretHold, { passive: false });
+    hitbox.addEventListener('touchend', cancelSecretHold);
+    hitbox.addEventListener('touchcancel', cancelSecretHold);
+    hitbox.addEventListener('mousedown', startSecretHold);
+    hitbox.addEventListener('mouseup', cancelSecretHold);
+    hitbox.addEventListener('mouseleave', cancelSecretHold);
 </script>
 </body>
 </html>
-
