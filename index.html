@@ -3,365 +3,210 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
-<title>BIT-PET</title>
+<title>BIT-PET REC</title>
 <style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  background: #121316; color: #a1a1aa;
-  font-family: 'Courier New', Courier, monospace; font-weight: bold;
-  min-height: 100dvh;
-  display: flex; flex-direction: column; align-items: center;
-  overflow-x: hidden;
-  user-select: none; -webkit-user-select: none;
-}
-
-/* ─── SETUP ─── */
-#setupScreen {
-  width: 100%; max-width: 400px;
-  padding: 60px 24px 40px;
-  display: flex; flex-direction: column; align-items: center; gap: 20px;
-}
-.cam-circle {
-  width: 180px; height: 180px; border-radius: 50%;
-  border: 3px dashed #10b981; overflow: hidden;
-  background: #000; box-shadow: 0 0 30px rgba(16,185,129,0.2);
-}
-.cam-circle video { width: 100%; height: 100%; object-fit: cover; }
-.setup-title { color: #34d399; font-size: 22px; }
-.setup-sub { font-size: 12px; color: #52525b; text-align: center; }
-.btn-rec {
-  width: 100%; padding: 18px;
-  background: #10b981; color: #000;
-  border: none; border-radius: 16px;
-  font-size: 16px; font-weight: bold; font-family: inherit;
-  cursor: pointer; box-shadow: 0 6px 0 #065f46;
-  transition: transform .1s;
-}
-.btn-rec:active { transform: translateY(3px); box-shadow: 0 3px 0 #065f46; }
-#noSupport { display:none; color:#ef4444; font-size:13px; text-align:center; padding: 0 10px; }
-
-/* ─── GAME ─── */
-#gameScreen {
-  display: none;
-  width: 100%; max-width: 420px;
-  padding: 0 16px 40px;
-  flex-direction: column; gap: 12px;
-}
-
-/* แถบ REC — มองเห็นตลอดเวลา */
-.rec-bar {
-  width: 100%;
-  background: #18181b; border: 2px solid #ef4444;
-  border-radius: 16px; padding: 10px 16px;
-  display: flex; align-items: center; justify-content: space-between;
-  margin-top: 16px;
-}
-.rec-dot {
-  display: inline-block; width: 10px; height: 10px;
-  background: #ef4444; border-radius: 50%;
-  animation: blink 1s infinite;
-}
-@keyframes blink { 0%,100%{ opacity:1; } 50%{ opacity:0.2; } }
-.rec-label { color: #ef4444; font-size: 13px; letter-spacing: 1px; }
-.rec-timer { color: #fff; font-size: 14px; font-variant-numeric: tabular-nums; }
-.btn-stop {
-  background: #ef4444; color: #fff;
-  border: none; border-radius: 10px;
-  padding: 6px 12px; font-size: 12px;
-  font-family: inherit; font-weight: bold; cursor: pointer;
-}
-
-/* HUD */
-.hud-top {
-  background: #18181b; border: 2px solid #27272a;
-  padding: 12px 16px; border-radius: 18px;
-  display: flex; justify-content: space-between; align-items: center;
-}
-.pet-name { color: #34d399; font-size: 14px; }
-.stat-group { display: flex; gap: 12px; font-size: 12px; }
-.stat-group span { color: #fff; }
-
-/* Stage */
-.stage-area {
-  background: #18181b; border: 2px solid #27272a;
-  border-radius: 22px; height: 240px;
-  display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
-  box-shadow: inset 0 0 30px rgba(0,0,0,0.6);
-}
-#petHitbox {
-  padding: 36px; cursor: pointer;
-  display: flex; justify-content: center; align-items: center;
-  -webkit-touch-callout: none;
-}
-.pixel-art {
-  width: 110px; height: 110px;
-  shape-rendering: crispEdges;
-  filter: drop-shadow(0 8px 8px rgba(0,0,0,0.8));
-  transition: transform 0.1s ease;
-}
-@keyframes gentleFloat { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-6px); } }
-.floating { animation: gentleFloat 2s infinite ease-in-out; }
-
-/* Dialogue */
-.dialogue-box {
-  background: #18181b; border: 2px solid #27272a;
-  padding: 12px 16px; border-radius: 14px;
-  font-size: 12px; color: #34d399; text-align: center; min-height: 20px;
-}
-
-/* Buttons */
-.btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.game-btn {
-  background: #27272a; border: 2px solid #3f3f46;
-  color: #f4f4f5; padding: 15px 0; border-radius: 14px;
-  font-family: inherit; font-weight: bold; font-size: 13px;
-  cursor: pointer; box-shadow: 0 4px 0 #0a0a0a;
-}
-.game-btn:active { transform: translateY(2px); box-shadow: 0 2px 0 #0a0a0a; }
-
-/* ─── RESULT ─── */
-#resultScreen {
-  display: none;
-  width: 100%; max-width: 400px;
-  padding: 60px 24px 40px;
-  flex-direction: column; align-items: center; gap: 16px;
-  text-align: center;
-}
-.result-title { color: #34d399; font-size: 18px; }
-#recordedPlayback { width: 100%; border-radius: 16px; background: #000; }
-.dl-btn {
-  display: block; width: 100%;
-  background: #34d399; color: #000;
-  padding: 18px; border-radius: 16px;
-  font-weight: bold; font-size: 15px;
-  text-decoration: none; font-family: inherit;
-}
-.btn-again {
-  width: 100%; padding: 14px;
-  background: #27272a; color: #f4f4f5;
-  border: 2px solid #3f3f46; border-radius: 14px;
-  font-family: inherit; font-weight: bold; font-size: 14px;
-  cursor: pointer;
-}
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#121316;color:#a1a1aa;font-family:'Courier New',Courier,monospace;font-weight:bold;min-height:100dvh;display:flex;flex-direction:column;align-items:center;overflow-x:hidden;user-select:none;-webkit-user-select:none;}
+#setupScreen{width:100%;max-width:400px;padding:60px 24px 40px;display:flex;flex-direction:column;align-items:center;gap:20px;}
+.cam-circle{width:180px;height:180px;border-radius:50%;border:3px dashed #10b981;overflow:hidden;background:#000;box-shadow:0 0 30px rgba(16,185,129,0.2);}
+.cam-circle video{width:100%;height:100%;object-fit:cover;}
+.setup-title{color:#34d399;font-size:22px;}
+.setup-sub{font-size:12px;color:#52525b;text-align:center;line-height:1.8;}
+.btn-rec{width:100%;padding:18px;background:#10b981;color:#000;border:none;border-radius:16px;font-size:16px;font-weight:bold;font-family:inherit;cursor:pointer;box-shadow:0 6px 0 #065f46;transition:transform .1s;}
+.btn-rec:active{transform:translateY(3px);box-shadow:0 3px 0 #065f46;}
+#noSupport{display:none;color:#ef4444;font-size:13px;text-align:center;padding:0 10px;}
+#gameScreen{display:none;width:100%;max-width:420px;padding:0 16px 40px;flex-direction:column;gap:12px;}
+.rec-bar{width:100%;background:#18181b;border:2px solid #ef4444;border-radius:16px;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;margin-top:16px;}
+.rec-dot{display:inline-block;width:10px;height:10px;background:#ef4444;border-radius:50%;animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0.2;}}
+.rec-label{color:#ef4444;font-size:13px;letter-spacing:1px;}
+.rec-timer{color:#fff;font-size:14px;font-variant-numeric:tabular-nums;}
+.btn-stop{background:#ef4444;color:#fff;border:none;border-radius:10px;padding:6px 12px;font-size:12px;font-family:inherit;font-weight:bold;cursor:pointer;}
+.sc{background:#18181b;border:2px solid #27272a;border-radius:20px;padding:14px;}
+.ab{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.at{font-size:8px;color:#68d391;font-family:'Press Start 2P',monospace;}
+.st{font-size:8px;font-family:'Press Start 2P',monospace;}
+.rarebar{text-align:center;font-size:7px;font-family:'Press Start 2P',monospace;color:#f6e05e;margin-bottom:10px;height:14px;}
+.mr{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.ml{font-size:8px;color:#718096;width:52px;font-family:'Press Start 2P',monospace;}
+.mb{flex:1;height:10px;background:#2d3748;border-radius:5px;overflow:hidden;}
+.mf{height:100%;border-radius:5px;transition:width .4s;}
+.mv{font-size:8px;color:#a0aec0;width:28px;text-align:right;font-family:'Press Start 2P',monospace;}
+.stage{background:#0f1420;border-radius:14px;height:190px;display:flex;align-items:center;justify-content:center;position:relative;margin:12px 0;overflow:hidden;}
+.ov{position:absolute;inset:0;background:rgba(0,0,0,0.88);display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;gap:10px;}
+.ot{font-size:11px;font-family:'Press Start 2P',monospace;}
+.os{font-size:8px;color:#a0aec0;font-family:'Press Start 2P',monospace;}
+.msg{background:#0f1420;border:2px solid #27272a;border-radius:10px;padding:10px 12px;margin-bottom:12px;min-height:36px;text-align:center;font-size:8px;color:#68d391;font-family:'Press Start 2P',monospace;line-height:1.7;}
+.bg{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.gb{background:#27272a;border:2px solid #3f3f46;color:#e2e8f0;border-radius:10px;padding:11px 6px;font-size:8px;font-family:'Press Start 2P',monospace;cursor:pointer;transition:transform .1s,background .1s;text-align:center;line-height:1.6;}
+.gb:active{transform:scale(0.95);background:#4a5568;}
+.gb.danger{border-color:#e53e3e;color:#fc8181;}
+#resultScreen{display:none;width:100%;max-width:400px;padding:60px 24px 40px;flex-direction:column;align-items:center;gap:16px;text-align:center;}
+.result-title{color:#34d399;font-size:18px;}
+#recordedPlayback{width:100%;border-radius:16px;background:#000;}
+.dl-btn{display:block;width:100%;background:#34d399;color:#000;padding:18px;border-radius:16px;font-weight:bold;font-size:15px;text-decoration:none;font-family:inherit;}
+.btn-again{width:100%;padding:14px;background:#27272a;color:#f4f4f5;border:2px solid #3f3f46;border-radius:14px;font-family:inherit;font-weight:bold;font-size:14px;cursor:pointer;}
 </style>
 </head>
 <body>
 
-<!-- ─── SETUP ─── -->
 <div id="setupScreen">
   <div class="cam-circle"><video id="preview" autoplay muted playsinline></video></div>
   <div class="setup-title">BIT-PET REC</div>
-  <div class="setup-sub">กดปุ่มด้านล่างเพื่อเริ่มบันทึกวิดีโอ<br>สัญลักษณ์ 🔴 REC จะแสดงตลอดเวลาที่อัดอยู่</div>
-  <button class="btn-rec" id="startBtn">🔴 เริ่มบันทึก</button>
-  <div id="noSupport">⚠️ เบราว์เซอร์นี้ไม่รองรับการบันทึกวิดีโอ<br>กรุณาใช้ Safari เวอร์ชันล่าสุด (iOS 14.3+)</div>
+  <div class="setup-sub">กดปุ่มด้านล่างเพื่อเริ่มบันทึกวิดีโอ<br>สัญลักษณ์ REC จะแสดงตลอดเวลาที่อัดอยู่<br>เล่นเกมมูจิระหว่างรอได้เลย!</div>
+  <button class="btn-rec" id="startBtn">เริ่มบันทึก</button>
+  <div id="noSupport">เบราว์เซอร์นี้ไม่รองรับ กรุณาใช้ Safari iOS 14.3+</div>
 </div>
 
-<!-- ─── GAME ─── -->
 <div id="gameScreen">
-
-  <!-- แถบ REC มองเห็นตลอด -->
   <div class="rec-bar">
     <div style="display:flex;align-items:center;gap:8px;">
       <span class="rec-dot"></span>
       <span class="rec-label">REC</span>
     </div>
     <span class="rec-timer" id="recTimer">00:00</span>
-    <button class="btn-stop" id="stopBtn">■ หยุดอัด</button>
+    <button class="btn-stop" id="stopBtn">หยุดอัด</button>
   </div>
-
-  <div class="hud-top">
-    <span class="pet-name">โกมอน (GOMON)</span>
-    <div class="stat-group">
-      <div>อิ่ม: <span id="s_eat">75</span>%</div>
-      <div>สุข: <span id="s_fun">80</span>%</div>
+  <div class="sc">
+    <div class="ab">
+      <span class="at" id="ageTxt">AGE 0</span>
+      <span class="st" id="stageTxt" style="color:#68d391">ลูกสุนัข</span>
+      <span class="at" id="timeTxt">00:00</span>
+    </div>
+    <div class="rarebar" id="rareBar"></div>
+    <div class="mr"><span class="ml">อิ่ม</span><div class="mb"><div class="mf" id="mEat" style="background:#f6ad55;width:80%"></div></div><span class="mv" id="vEat">80</span></div>
+    <div class="mr"><span class="ml">สุข</span><div class="mb"><div class="mf" id="mFun" style="background:#68d391;width:75%"></div></div><span class="mv" id="vFun">75</span></div>
+    <div class="mr"><span class="ml">สะอาด</span><div class="mb"><div class="mf" id="mClean" style="background:#63b3ed;width:90%"></div></div><span class="mv" id="vClean">90</span></div>
+    <div class="mr"><span class="ml">สุขภาพ</span><div class="mb"><div class="mf" id="mHp" style="background:#fc8181;width:100%"></div></div><span class="mv" id="vHp">100</span></div>
+    <div class="stage">
+      <div id="petOv" class="ov" style="display:none">
+        <div class="ot" id="ovTitle" style="color:#fc8181">มูจิจากไปแล้ว</div>
+        <div class="os" id="ovSub"></div>
+        <div class="os" id="ovEvo" style="margin-top:4px"></div>
+        <button class="gb" style="margin-top:8px" onclick="resetPet()">เลี้ยงใหม่</button>
+      </div>
+      <svg id="petSvg" width="100" height="100" viewBox="0 0 16 16" style="image-rendering:pixelated;transition:transform .15s,filter .3s"></svg>
+    </div>
+    <div class="msg" id="msgBox">มูจิกำลังนั่งแกว่งหาง...</div>
+    <div class="bg">
+      <button class="gb" onclick="act('feed')">ป้อนอาหาร</button>
+      <button class="gb" onclick="act('play')">เล่นบอล</button>
+      <button class="gb" onclick="act('clean')">อาบน้ำ</button>
+      <button class="gb danger" id="medBtn" onclick="act('med')" style="display:none">ให้ยา</button>
+      <button class="gb" onclick="act('sleep')">นอน</button>
+      <button class="gb" onclick="act('pet')">ลูบหัว</button>
     </div>
   </div>
-
-  <div class="stage-area">
-    <div id="petHitbox">
-      <svg class="pixel-art floating" id="petSvg" viewBox="0 0 16 16">
-        <path fill="#10b981" d="M6,2 h4 v1 h2 v1 h1 v4 h-1 v1 h1 v3 h-1 v1 h-1 v1 h-5 v-1 h-1 v-1 h-1 v-3 h1 v-1 h1 v-3 h1 z"/>
-        <path fill="#ffffff" d="M7,8 h3 v4 h-4 v-1 h-1 v-2 h2 z"/>
-        <rect fill="#000000" x="10" y="4" width="1" height="2"/>
-        <rect fill="#ef4444" x="11" y="7" width="1" height="1"/>
-      </svg>
-    </div>
-  </div>
-
-  <div class="dialogue-box" id="consoleText">"โกมอนกำลังแกว่งหางไปมาอย่างอารมณ์ดี..."</div>
-
-  <div class="btn-grid">
-    <button class="game-btn" onclick="act('feed')">🍖 ป้อนน่องไก่</button>
-    <button class="game-btn" onclick="act('play')">⚽ เตะบอล</button>
-    <button class="game-btn" onclick="act('clean')">🧹 อาบน้ำ</button>
-    <button class="game-btn" onclick="act('sleep')">💤 ปิดไฟนอน</button>
-  </div>
-
 </div>
 
-<!-- ─── RESULT ─── -->
 <div id="resultScreen">
-  <div class="result-title">✔ บันทึกเสร็จสิ้น</div>
+  <div class="result-title">บันทึกเสร็จสิ้น</div>
   <video id="recordedPlayback" controls playsinline></video>
-  <a id="dlBtn" class="dl-btn" href="#">📥 ดาวน์โหลดวิดีโอ</a>
-  <button class="btn-again" id="againBtn">🔄 อัดใหม่</button>
+  <a id="dlBtn" class="dl-btn" href="#">ดาวน์โหลดวิดีโอ</a>
+  <button class="btn-again" id="againBtn">อัดใหม่</button>
 </div>
 
 <script>
-  var mediaRecorder, recordedChunks = [], stream;
-  var recSeconds = 0, recInterval = null, hungerInterval = null;
-  var eat = 75, fun = 80;
+var mediaRecorder,recordedChunks=[],stream,recSeconds=0,recInterval=null;
+if(!window.MediaRecorder||!navigator.mediaDevices){document.getElementById('startBtn').style.display='none';document.getElementById('noSupport').style.display='block';}
+function getBestMime(){var t=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp8','video/webm'];for(var i=0;i<t.length;i++)if(MediaRecorder.isTypeSupported(t[i]))return t[i];return '';}
+function fmtTime(s){var m=Math.floor(s/60),sc=s%60;return(m<10?'0':'')+m+':'+(sc<10?'0':'')+sc;}
+document.getElementById('startBtn').addEventListener('click',async function(){
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:480},height:{ideal:640},frameRate:{ideal:15}},audio:true});
+    document.getElementById('preview').srcObject=stream;
+    var mime=getBestMime(),opts={videoBitsPerSecond:800000};
+    if(mime)opts.mimeType=mime;
+    mediaRecorder=new MediaRecorder(stream,opts);recordedChunks=[];
+    mediaRecorder.ondataavailable=function(e){if(e.data&&e.data.size>0)recordedChunks.push(e.data);};
+    mediaRecorder.onstop=function(){
+      var blob=new Blob(recordedChunks,{type:mime||'video/mp4'});
+      document.getElementById('recordedPlayback').src=URL.createObjectURL(blob);
+      var reader=new FileReader();reader.readAsDataURL(blob);
+      reader.onloadend=function(){var dl=document.getElementById('dlBtn');dl.href=reader.result;dl.download='BIT-PET_'+Date.now()+'.mp4';};
+      showScreen('result');
+    };
+    mediaRecorder.start(1000);
+    recSeconds=0;document.getElementById('recTimer').textContent='00:00';
+    recInterval=setInterval(function(){recSeconds++;document.getElementById('recTimer').textContent=fmtTime(recSeconds);},1000);
+    showScreen('game');
+  }catch(err){alert('ไม่สามารถเปิดกล้องได้: '+err.message);}
+});
+document.getElementById('stopBtn').addEventListener('click',function(){clearInterval(recInterval);if(mediaRecorder&&mediaRecorder.state!=='inactive')mediaRecorder.stop();if(stream)stream.getTracks().forEach(function(t){t.stop();});});
+document.getElementById('againBtn').addEventListener('click',function(){recordedChunks=[];showScreen('setup');});
+function showScreen(n){document.getElementById('setupScreen').style.display=n==='setup'?'flex':'none';document.getElementById('gameScreen').style.display=n==='game'?'flex':'none';document.getElementById('resultScreen').style.display=n==='result'?'flex':'none';window.scrollTo(0,0);}
 
-  var $ = function(id){ return document.getElementById(id); };
-
-  // ─── เช็ค support ───
-  if (!window.MediaRecorder || !navigator.mediaDevices) {
-    $('startBtn').style.display = 'none';
-    $('noSupport').style.display = 'block';
+var S={eat:80,fun:75,clean:90,hp:100,sick:false,sleeping:false,dead:false,age:0,baseStage:0,isRare:false,rareScore:0,elapsed:0,goodTicks:0},tick=0;
+var STAGES=[{name:'ลูกสุนัข',color:'#68d391'},{name:'ชิบะวัยรุ่น',color:'#f6ad55'},{name:'ชิบะผู้ใหญ่',color:'#63b3ed'},{name:'โคมอน ทอง',color:'#f6e05e'}];
+var CN=[{body:'#E88B4A',ear:'#C97035',face:'#F5B07A',eye:'#2D2D2D',nose:'#C97035',cheek:'#F09A7A',belly:'#F5C89A'},{body:'#D4743A',ear:'#B55C28',face:'#E89A60',eye:'#2D2D2D',nose:'#B55C28',cheek:'#E0895A',belly:'#EDAA80'},{body:'#C4612A',ear:'#A44918',face:'#D8854C',eye:'#2D2D2D',nose:'#A44918',cheek:'#CE7848',belly:'#E09A6A'}];
+var CR={body:'#D4A017',ear:'#A07810',face:'#F0CC60',eye:'#1a1000',nose:'#A07810',cheek:'#F0B840',belly:'#F8E090',glow:'#f6e05e'};
+function px(stage,mood,isRare){
+  var c=isRare?CR:CN[Math.min(stage,2)],oy=stage===0?2:1;
+  if(mood==='sick')return '<rect x="3" y="'+(oy+1)+'" width="10" height="8" rx="1" fill="'+c.body+'"/><rect x="3" y="'+(oy+1)+'" width="2" height="3" fill="'+c.ear+'"/><rect x="11" y="'+(oy+1)+'" width="2" height="3" fill="'+c.ear+'"/><rect x="4" y="'+(oy+3)+'" width="8" height="6" fill="'+c.face+'"/><rect x="5" y="'+(oy+5)+'" width="2" height="2" fill="'+c.eye+'"/><rect x="9" y="'+(oy+5)+'" width="2" height="2" fill="'+c.eye+'"/><rect x="7" y="'+(oy+7)+'" width="2" height="1" fill="'+c.nose+'"/><rect x="5" y="'+(oy+8)+'" width="6" height="1" fill="'+c.eye+'"/><rect x="5" y="'+(oy+9)+'" width="6" height="3" fill="'+c.body+'"/><rect x="4" y="'+(oy+11)+'" width="2" height="2" fill="'+c.ear+'"/><rect x="10" y="'+(oy+11)+'" width="2" height="2" fill="'+c.ear+'"/><rect x="1" y="6" width="1" height="1" fill="#68d391"/><rect x="14" y="4" width="1" height="1" fill="#68d391"/>';
+  if(mood==='sleep')return '<rect x="2" y="'+(oy+1)+'" width="2" height="3" fill="'+c.ear+'"/><rect x="12" y="'+(oy+1)+'" width="2" height="3" fill="'+c.ear+'"/><rect x="2" y="'+(oy+2)+'" width="12" height="9" rx="2" fill="'+c.body+'"/><rect x="3" y="'+(oy+3)+'" width="10" height="8" fill="'+c.face+'"/><rect x="5" y="'+(oy+5)+'" width="3" height="1" fill="'+c.eye+'"/><rect x="9" y="'+(oy+5)+'" width="3" height="1" fill="'+c.eye+'"/><rect x="7" y="'+(oy+7)+'" width="2" height="1" fill="'+c.nose+'"/><rect x="13" y="2" width="1" height="1" fill="#a0aec0"/><rect x="14" y="1" width="1" height="1" fill="#a0aec0"/><rect x="15" y="0" width="1" height="1" fill="#a0aec0"/>';
+  var happy=mood==='happy';
+  var base='<rect x="2" y="'+oy+'" width="2" height="4" fill="'+c.ear+'"/><rect x="12" y="'+oy+'" width="2" height="4" fill="'+c.ear+'"/><rect x="2" y="'+(oy+2)+'" width="12" height="9" rx="2" fill="'+c.body+'"/><rect x="3" y="'+(oy+3)+'" width="10" height="8" fill="'+c.face+'"/><rect x="4" y="'+(oy+5)+'" width="3" height="3" fill="'+c.eye+'"/><rect x="5" y="'+(oy+5)+'" width="1" height="1" fill="#fff"/><rect x="9" y="'+(oy+5)+'" width="3" height="3" fill="'+c.eye+'"/><rect x="10" y="'+(oy+5)+'" width="1" height="1" fill="#fff"/><rect x="6" y="'+(oy+8)+'" width="4" height="1" fill="'+c.nose+'"/><rect x="5" y="'+(oy+9)+'" width="'+(happy?6:2)+'" height="1" fill="'+c.eye+'"/>'+(happy?'<rect x="5" y="'+(oy+10)+'" width="2" height="1" fill="'+c.eye+'"/><rect x="9" y="'+(oy+10)+'" width="2" height="1" fill="'+c.eye+'"/>'  :'<rect x="9" y="'+(oy+9)+'" width="2" height="1" fill="'+c.eye+'"/>')+'<rect x="4" y="'+(oy+6)+'" width="2" height="1" fill="'+c.cheek+'"/><rect x="10" y="'+(oy+6)+'" width="2" height="1" fill="'+c.cheek+'"/><rect x="5" y="'+(oy+11)+'" width="2" height="3" fill="'+c.body+'"/><rect x="9" y="'+(oy+11)+'" width="2" height="3" fill="'+c.body+'"/>';
+  if(isRare)base+='<rect x="6" y="'+(oy-1)+'" width="1" height="1" fill="'+c.glow+'"/><rect x="9" y="'+(oy-1)+'" width="1" height="1" fill="'+c.glow+'"/><rect x="7" y="'+(oy-2)+'" width="2" height="1" fill="'+c.glow+'"/>';
+  return base;
+}
+function getMood(){if(S.dead)return 'sleep';if(S.sick)return 'sick';if(S.sleeping)return 'sleep';if(S.fun>70&&S.eat>60)return 'happy';return 'normal';}
+function drawPet(){var svg=document.getElementById('petSvg'),sz=S.isRare?130:S.baseStage===2?115:S.baseStage===1?105:90;svg.setAttribute('width',sz);svg.setAttribute('height',sz);svg.innerHTML=px(S.baseStage,getMood(),S.isRare);svg.style.filter=S.isRare?'drop-shadow(0 0 6px #f6e05e) drop-shadow(0 4px 6px rgba(0,0,0,0.6))':'drop-shadow(0 4px 6px rgba(0,0,0,0.6))';svg.style.animation=S.sleeping||S.dead?'none':'float 2s infinite ease-in-out';}
+var sEl=document.createElement('style');sEl.textContent='@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}';document.head.appendChild(sEl);
+function setMsg(t){document.getElementById('msgBox').textContent=t;}
+function updateUI(){
+  var d={eat:[S.eat,'mEat','vEat','#f6ad55'],fun:[S.fun,'mFun','vFun','#68d391'],clean:[S.clean,'mClean','vClean','#63b3ed'],hp:[S.hp,'mHp','vHp','#fc8181']};
+  for(var k in d){var b=d[k],v=Math.max(0,Math.min(100,Math.round(b[0])));document.getElementById(b[1]).style.width=v+'%';document.getElementById(b[2]).textContent=v;document.getElementById(b[1]).style.background=v<=20?'#fc8181':v<=40?'#f6ad55':b[3];}
+  document.getElementById('medBtn').style.display=S.sick?'block':'none';
+  document.getElementById('ageTxt').textContent='AGE '+S.age;
+  var si=S.isRare?3:S.baseStage,st=STAGES[si],stEl=document.getElementById('stageTxt');stEl.textContent=st.name;stEl.style.color=st.color;
+  var m=Math.floor(S.elapsed/60),sec=S.elapsed%60;document.getElementById('timeTxt').textContent=(m<10?'0':'')+m+':'+(sec<10?'0':'')+sec;
+  var rb=document.getElementById('rareBar');
+  if(!S.isRare&&S.baseStage>=1){var pct=Math.round(Math.min(100,S.rareScore));rb.textContent='RARE '+pct+'% '+'|'.repeat(Math.floor(pct/10))+'.'.repeat(10-Math.floor(pct/10));rb.style.color=pct>=100?'#f6e05e':pct>=60?'#f6ad55':'#4a5568';}
+  else if(S.isRare){rb.textContent='โคมอน ทอง';rb.style.color='#f6e05e';}
+  else rb.textContent='';
+  drawPet();
+}
+function act(type){
+  if(S.dead)return;
+  var svg=document.getElementById('petSvg');svg.style.transform='scale(1.15)';setTimeout(function(){svg.style.transform='none';},150);
+  if(type==='feed'){if(S.sleeping){setMsg('มูจิกำลังนอนอยู่...');return;}S.eat=Math.min(100,S.eat+25);setMsg(S.sick?'กินได้นิดหน่อย... ยังป่วยอยู่':'อร่อยมาก! มูจิโดกหางสนั่น!');}
+  if(type==='play'){if(S.sleeping){setMsg('มูจิกำลังนอนอยู่...');return;}if(S.sick){setMsg('ป่วยอยู่ เล่นไม่ไหวหรอก...');return;}S.fun=Math.min(100,S.fun+25);S.eat=Math.max(0,S.eat-10);setMsg('วู้ฮู! มูจิวิ่งไล่บอลเต็มสนาม!');}
+  if(type==='clean'){if(S.sleeping){setMsg('มูจิกำลังนอนอยู่...');return;}S.clean=Math.min(100,S.clean+40);setMsg('อาบน้ำแล้ว ตัวหอมเหมือนแป้งเด็ก!');}
+  if(type==='med'){S.sick=false;S.hp=Math.min(100,S.hp+20);setMsg('ได้รับยาแล้ว มูจิค่อยๆ ฟื้น!');}
+  if(type==='sleep'){S.sleeping=!S.sleeping;setMsg(S.sleeping?'มูจิหลับตาลงแล้ว... (Zzz)':'มูจิตื่นขึ้นมาสดชื่น!');if(!S.sleeping){S.fun=Math.min(100,S.fun+10);S.hp=Math.min(100,S.hp+10);}}
+  if(type==='pet'){S.fun=Math.min(100,S.fun+8);setMsg(S.isRare?'มูจิทองเปล่งแสงวาว~':'มูจิหลับตาข้างนึง ชอบมาก~');}
+  updateUI();
+}
+function checkRare(){if(S.isRare||S.baseStage<1)return;var good=(S.hp>80&&S.fun>80&&S.clean>80&&S.eat>80&&!S.sick);if(good)S.goodTicks++;else S.goodTicks=Math.max(0,S.goodTicks-1);S.rareScore=Math.min(100,(S.goodTicks/60)*100);if(S.rareScore>=100){S.isRare=true;setMsg('มูจิวิวัฒนาการเป็น โคมอน ทอง!');}}
+function checkSick(){if(!S.sick&&(S.clean<20||(S.eat<15&&S.fun<15)))if(Math.random()<0.3){S.sick=true;setMsg('มูจิป่วย! รีบให้ยาด้วย!');}}
+function gameLoop(){
+  if(S.dead)return;
+  tick++;S.elapsed++;
+  if(!S.sleeping){S.eat=Math.max(0,S.eat-(tick%5===0?2:0));S.fun=Math.max(0,S.fun-(tick%7===0?2:0));S.clean=Math.max(0,S.clean-(tick%9===0?2:0));}
+  else{S.hp=Math.min(100,S.hp+(tick%10===0?1:0));S.fun=Math.min(100,S.fun+(tick%8===0?1:0));}
+  if(S.sick)S.hp=Math.max(0,S.hp-(tick%4===0?3:0));
+  if(S.eat<10)S.hp=Math.max(0,S.hp-(tick%6===0?2:0));
+  if(S.isRare)S.hp=Math.min(100,S.hp+(tick%15===0?1:0));
+  if(tick%20===0)checkSick();
+  if(tick%30===0){S.age++;checkRare();}
+  var nb=S.age<3?0:S.age<8?1:2;
+  if(nb!==S.baseStage&&!S.isRare){S.baseStage=nb;var nm=['','ชิบะวัยรุ่นแล้ว!','ชิบะผู้ใหญ่ที่สง่างาม!'];if(nm[nb])setMsg('มูจิโตขึ้น! เป็น'+nm[nb]);}
+  if(S.hp<=0){
+    S.dead=true;drawPet();
+    var ov=document.getElementById('petOv');ov.style.display='flex';
+    document.getElementById('ovTitle').textContent='มูจิจากไปแล้ว...';
+    var m=Math.floor(S.elapsed/60),sc=S.elapsed%60;
+    document.getElementById('ovSub').textContent='ดูแลได้นาน '+(m<10?'0':'')+m+':'+(sc<10?'0':'')+sc;
+    document.getElementById('ovEvo').textContent=S.isRare?'ได้เห็น โคมอน ทอง แล้ว!':'วิวัฒนาการถึง: '+STAGES[S.baseStage].name;
+    return;
   }
-
-  // ─── เลือก mimeType ที่ Safari รองรับ ───
-  function getBestMime() {
-    var types = [
-      'video/mp4;codecs=avc1',
-      'video/mp4',
-      'video/webm;codecs=vp8',
-      'video/webm'
-    ];
-    for (var i = 0; i < types.length; i++) {
-      if (MediaRecorder.isTypeSupported(types[i])) return types[i];
-    }
-    return '';
-  }
-
-  // ─── format timer ───
-  function formatTime(s) {
-    var m = Math.floor(s / 60);
-    var sec = s % 60;
-    return (m < 10 ? '0' : '') + m + ':' + (sec < 10 ? '0' : '') + sec;
-  }
-
-  // ─── เริ่มอัด ───
-  $('startBtn').addEventListener('click', async function() {
-    try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: 480 },
-          height: { ideal: 640 },
-          frameRate: { ideal: 15 }
-        },
-        audio: true
-      });
-
-      $('preview').srcObject = stream;
-
-      var mime = getBestMime();
-      var opts = { videoBitsPerSecond: 800000 };
-      if (mime) opts.mimeType = mime;
-
-      mediaRecorder = new MediaRecorder(stream, opts);
-      recordedChunks = [];
-
-      mediaRecorder.ondataavailable = function(e) {
-        if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-      };
-
-      mediaRecorder.onstop = function() {
-        var finalMime = mime || 'video/mp4';
-        var blob = new Blob(recordedChunks, { type: finalMime });
-        var url = URL.createObjectURL(blob);
-        $('recordedPlayback').src = url;
-
-        var reader = new FileReader();
-        reader.readAsDataURL(blob);
-        reader.onloadend = function() {
-          var dl = $('dlBtn');
-          dl.href = reader.result;
-          dl.download = 'BIT-PET_' + Date.now() + '.mp4';
-        };
-
-        showScreen('result');
-      };
-
-      mediaRecorder.start(1000);
-
-      // เริ่มนับเวลา
-      recSeconds = 0;
-      $('recTimer').textContent = '00:00';
-      recInterval = setInterval(function() {
-        recSeconds++;
-        $('recTimer').textContent = formatTime(recSeconds);
-      }, 1000);
-
-      // ระบบหิวตามเวลา
-      hungerInterval = setInterval(function() {
-        eat = Math.max(0, eat - 1);
-        fun = Math.max(0, fun - 1);
-        updateStat();
-      }, 5000);
-
-      showScreen('game');
-
-    } catch (err) {
-      alert('ไม่สามารถเปิดกล้องได้: ' + err.message);
-    }
-  });
-
-  // ─── หยุดอัด ───
-  $('stopBtn').addEventListener('click', function() {
-    stopRecording();
-  });
-
-  function stopRecording() {
-    clearInterval(recInterval);
-    clearInterval(hungerInterval);
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
-    if (stream) stream.getTracks().forEach(function(t){ t.stop(); });
-  }
-
-  // ─── อัดใหม่ ───
-  $('againBtn').addEventListener('click', function() {
-    recordedChunks = [];
-    eat = 75; fun = 80; updateStat();
-    $('consoleText').textContent = '"โกมอนกำลังแกว่งหางไปมาอย่างอารมณ์ดี..."';
-    showScreen('setup');
-  });
-
-  // ─── สลับหน้า ───
-  function showScreen(name) {
-    $('setupScreen').style.display  = name === 'setup'  ? 'flex' : 'none';
-    $('gameScreen').style.display   = name === 'game'   ? 'flex' : 'none';
-    $('resultScreen').style.display = name === 'result' ? 'flex' : 'none';
-    window.scrollTo(0, 0);
-  }
-
-  // ─── เกมโกมอน ───
-  function updateStat() {
-    $('s_eat').textContent = eat;
-    $('s_fun').textContent = fun;
-  }
-
-  function act(type) {
-    var svg = $('petSvg');
-    svg.style.transform = 'scale(1.2)';
-    setTimeout(function(){ svg.style.transform = 'none'; }, 150);
-
-    if (type === 'feed')  { eat = Math.min(100, eat+20); $('consoleText').textContent = '냠냠! น่องไก่อร่อยที่สุดในโลก! (+20 อิ่ม)'; }
-    if (type === 'play')  { fun = Math.min(100, fun+20); eat = Math.max(0, eat-10); $('consoleText').textContent = '♪ โกมอนวิ่งไล่ลูกบอลอย่างสนุกสนาน!'; }
-    if (type === 'clean') { $('consoleText').textContent = '✨ ตัวหอมฟุ้งเหมือนแป้งเด็ก!'; }
-    if (type === 'sleep') { $('consoleText').textContent = '💤 โกมอนสัปหงก... (Zzz)'; }
-    updateStat();
-  }
-
-  // ─── ลูบหัวโกมอน ───
-  var hitbox = $('petHitbox');
-  hitbox.addEventListener('click', function() {
-    fun = Math.min(100, fun + 5);
-    updateStat();
-    $('consoleText').textContent = '♪ โกมอนชอบให้คุณลูบหัวจัง~';
-  });
+  if(tick%15===0&&!S.sick&&!S.sleeping){var msgs=S.isRare?['มูจิทองเปล่งออร่าสีทอง...','มูจิมองตาคุณแวววาว...','ขนทองของมูจิเงางาม...']:['มูจิมองตาคุณด้วยดวงตาใส...','มูจิเดินวนๆ รอบขา...','มูจิจิ้มจมูกเย็น...','มูจิส่งเสียงครางเบาๆ...'];setMsg(msgs[Math.floor(Math.random()*msgs.length)]);}
+  updateUI();
+}
+function resetPet(){S={eat:80,fun:75,clean:90,hp:100,sick:false,sleeping:false,dead:false,age:0,baseStage:0,isRare:false,rareScore:0,elapsed:0,goodTicks:0};tick=0;document.getElementById('petOv').style.display='none';setMsg('มูจิตัวน้อยเพิ่งเกิดมา!');updateUI();}
+drawPet();updateUI();
+setInterval(gameLoop,1000);
 </script>
 </body>
 </html>
