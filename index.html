@@ -183,7 +183,7 @@
 
   <!-- หน้าจอมืดสนิท (OLED Black Overlay) -->
   <div id="blackScreenOverlay" onclick="disableBlackScreen()">
-    <div class="overlay-hint">แตะ 2 ครั้งเร็วๆ หรือกดค้างเพื่อเลิกดับจอ</div>
+    <div class="overlay-hint">แตะหน้าจอ 1 ครั้งเพื่อเลิกดับจอ</div>
   </div>
 
   <script>
@@ -204,11 +204,9 @@
     // 1. เริ่มต้นค้นหากล้องและเรียกใช้งาน
     async function initCamera() {
       try {
-        // ขอ permission เปิดกล้องก่อนเพื่อดึงรายชื่อกล้องทั้งหมด
         const initialStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         initialStream.getTracks().forEach(track => track.stop());
 
-        // ดึงรายการอุปกรณ์
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(device => device.kind === 'videoinput');
 
@@ -222,7 +220,6 @@
           
           let label = device.label || `Camera ${index + 1}`;
           
-          // ตรวจหาเลนส์ Ultrawide (0.5x) จากชื่อกล้อง
           if (label.toLowerCase().includes('ultra') || label.toLowerCase().includes('wide') || label.includes('0.5')) {
             label = `🔍 0.5x Ultrawide`;
             ultrawideId = device.deviceId;
@@ -232,7 +229,6 @@
           cameraSelect.appendChild(option);
         });
 
-        // หากเจอเลนส์ 0.5x ให้เลือกเป็นค่าเริ่มต้นอัตโนมัติ
         const selectedId = ultrawideId || (videoDevices[0] ? videoDevices[0].deviceId : null);
         if (selectedId) {
           cameraSelect.value = selectedId;
@@ -244,7 +240,7 @@
       }
     }
 
-    // 2. เปิดใช้งาน Stream กล้องตาม Device ID
+    // 2. เปิดใช้งาน Stream กล้อง
     async function startStream(deviceId) {
       if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
@@ -264,7 +260,6 @@
         webcam.srcObject = currentStream;
       } catch (err) {
         console.error(" Error loading camera stream: ", err);
-        // Fallback กรณีใช้ exact ID ไม่ได้
         currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         webcam.srcObject = currentStream;
       }
@@ -278,7 +273,7 @@
       await startStream(deviceId);
     }
 
-    // 3. ระบบอัดวิดีโอ (MediaRecorder API)
+    // 3. ระบบอัดวิดีโอ (MediaRecorder API) ที่แก้ไขเรื่องการโหลดแล้ว
     function toggleRecording() {
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         startRecording();
@@ -287,12 +282,20 @@
       }
     }
 
+    // ดึง MIME Type ที่ดีที่สุดสำหรับอุปกรณ์ (iOS ใช้ mp4, Android/PC ใช้ webm)
+    function getSupportedMimeType() {
+      const types = [
+        'video/mp4;codecs=avc1',
+        'video/mp4',
+        'video/webm;codecs=vp9,opus',
+        'video/webm'
+      ];
+      return types.find(type => MediaRecorder.isTypeSupported(type)) || '';
+    }
+
     async function startRecording() {
       recordedChunks = [];
-      
-      // เลือก MIME Type ที่รองรับ
-      const mimeTypes = ['video/webm;codecs=vp9,opus', 'video/webm', 'video/mp4'];
-      const selectedMime = mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || '';
+      const selectedMime = getSupportedMimeType();
 
       try {
         mediaRecorder = new MediaRecorder(currentStream, { mimeType: selectedMime });
@@ -304,12 +307,12 @@
         if (e.data.size > 0) recordedChunks.push(e.data);
       };
 
-      mediaRecorder.onstop = saveVideo;
+      // เรียกฟังก์ชันแชร์/โหลดเมื่อกดหยุด
+      mediaRecorder.onstop = showVideoPreview; 
 
       mediaRecorder.start(1000); // เก็บข้อมูลทุกๆ 1 วินาที
-      requestWakeLock(); // เปิดกันหน้าจอดับ (System Sleep)
+      requestWakeLock();
 
-      // อัปเดต UI
       recordBtn.classList.add('recording');
       statusText.innerText = "กำลังบันทึก...";
       timeDisplay.style.display = "inline";
@@ -324,24 +327,50 @@
       releaseWakeLock();
 
       recordBtn.classList.remove('recording');
-      statusText.innerText = "เตรียมพร้อม";
+      statusText.innerText = "กำลังประมวลผล...";
       timeDisplay.style.display = "none";
       timeDisplay.innerText = "00:00:00";
+      
+      setTimeout(() => {
+          statusText.innerText = "เตรียมพร้อม";
+      }, 2000);
     }
 
-    // 4. บันทึกไฟล์วิดีโอลงเครื่อง
-    function saveVideo() {
-      const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/webm' });
-      const url = URL.createObjectURL(blob);
+    // 4. ระบบบันทึก/แชร์ไฟล์ (แก้ไขให้รองรับมือถือ)
+    async function showVideoPreview() {
+      const mimeType = mediaRecorder.mimeType || 'video/mp4';
+      const blob = new Blob(recordedChunks, { type: mimeType });
+      const videoUrl = URL.createObjectURL(blob);
+      
+      // กำหนดนามสกุลไฟล์ให้ตรงกับ MIME Type
+      const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
+      const fileName = `video_${new Date().toISOString().slice(0,19).replace(/[:T]/g, "-")}.${ext}`;
+
+      // หากเป็นมือถือและรองรับ Web Share API (บันทึกลง Photos ได้โดยตรง)
+      const file = new File([blob], fileName, { type: mimeType });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'บันทึกวิดีโอ',
+            text: 'วิดีโอจาก Long Recorder'
+          });
+          return; // แชร์สำเร็จ ไม่ต้องดาวน์โหลดซ้ำ
+        } catch (err) {
+          console.log('User cancelled share or share failed:', err);
+        }
+      }
+
+      // หากไม่รองรับ Share ให้ใช้วิธีเปิดลิงก์ดาวน์โหลดตรงๆ
       const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `video_${new Date().toISOString().slice(0,19).replace(/[:T]/g, "-")}.webm`;
+      a.href = videoUrl;
+      a.download = fileName;
+      a.target = '_blank';
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {
         document.body.removeChild(a);
-        window.URL.revokeObjectURL(url);
+        window.URL.revokeObjectURL(videoUrl);
       }, 100);
     }
 
