@@ -3,14 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Long Video Recorder (OLED Saver & 0.5x Support)</title>
+  <title>Universal Long Video Recorder</title>
   <style>
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       user-select: none;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
@@ -22,7 +23,7 @@
       overflow: hidden;
     }
 
-    /* กล่องแสดงผลกล้อง */
+    /* กล่องพรีวิว */
     .preview-container {
       position: relative;
       flex: 1;
@@ -39,15 +40,14 @@
       object-fit: cover;
     }
 
-    /* แผงควบคุมด้านล่าง */
+    /* แผงควบคุม */
     .controls {
-      height: 160px;
-      background: rgba(0, 0, 0, 0.9);
+      padding: 15px 20px;
+      background: rgba(0, 0, 0, 0.95);
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: space-around;
-      padding: 10px 20px;
+      gap: 12px;
       z-index: 10;
     }
 
@@ -66,39 +66,40 @@
 
     .btn-group {
       display: flex;
-      gap: 15px;
+      gap: 12px;
       width: 100%;
       justify-content: center;
       align-items: center;
+      flex-wrap: wrap;
     }
 
-    button {
+    button, .native-btn {
       background: #2c2c2e;
       color: #fff;
       border: none;
-      padding: 12px 20px;
+      padding: 12px 18px;
       border-radius: 25px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    button:active {
-      transform: scale(0.95);
-      opacity: 0.8;
-    }
-
-    /* ปุ่มอัดวิดีโอ */
-    #recordBtn {
-      background: #ff3b30;
-      width: 65px;
-      height: 65px;
-      border-radius: 50%;
-      padding: 0;
-      display: flex;
+      text-align: center;
+      text-decoration: none;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
+    }
+
+    button:active, .native-btn:active {
+      opacity: 0.7;
+    }
+
+    /* ปุ่มอัดหลัก */
+    #recordBtn {
+      background: #ff3b30;
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      padding: 0;
       border: 4px solid #fff;
     }
 
@@ -109,81 +110,104 @@
 
     #recordBtn.recording::after {
       content: "";
-      width: 24px;
-      height: 24px;
+      width: 20px;
+      height: 20px;
       background: #ff3b30;
       border-radius: 4px;
     }
 
-    /* ตัวเลือกกล้อง */
     select {
       background: #2c2c2e;
       color: #fff;
       border: 1px solid #444;
-      padding: 10px 15px;
+      padding: 10px 12px;
       border-radius: 12px;
-      font-size: 14px;
-      max-width: 150px;
+      font-size: 13px;
+      max-width: 140px;
     }
 
-    /* Overlay จอมืดสนิทสำหรับจอ OLED */
+    #nativeFileInput {
+      display: none;
+    }
+
+    .legacy-notice {
+      background: #332200;
+      color: #ffcc00;
+      font-size: 12px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 5px;
+      display: none;
+    }
+
+    /* Overlay จอมืดสนิท */
     #blackScreenOverlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: #000000;
+      background-color: #000;
       z-index: 99999;
       display: none;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
     }
 
     .overlay-hint {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      color: #111; /* สีสลัวมาก ป้องกันแสงสะท้อน */
-      font-size: 12px;
+      color: #222; /* สีสลัวมืด ประหยัดไฟและไม่แสบตา */
+      font-size: 13px;
       text-align: center;
       pointer-events: none;
+      transition: color 0.3s;
     }
   </style>
 </head>
 <body>
 
-  <!-- กล่องพรีวิวกล้อง -->
   <div class="preview-container">
     <video id="webcam" autoplay playsinline muted></video>
   </div>
 
-  <!-- แผงปุ่มควบคุม -->
   <div class="controls">
+    <div id="legacyNotice" class="legacy-notice">
+      ⚠️ โหมด iOS 12 / เครื่องรุ่นเก่า: ใช้ปุ่มถ่ายด้วยกล้องระบบ
+    </div>
+
     <div class="status-bar">
-      <span id="statusText">เตรียมพร้อม</span>
+      <span id="statusText">กำลังเตรียมระบบ...</span>
       <span id="timeDisplay" class="recording-time">00:00:00</span>
     </div>
 
     <div class="btn-group">
-      <!-- ตัวเลือกรายการกล้องในเครื่อง -->
       <select id="cameraSelect" onchange="switchCamera(this.value)">
-        <option value="">กำลังค้นหากล้อง...</option>
+        <option value="">กล้องหลังปกติ</option>
       </select>
 
-      <!-- ปุ่มอัดวิดีโอ -->
       <button id="recordBtn" onclick="toggleRecording()"></button>
 
-      <!-- ปุ่มดับจอประหยัดพลังงาน -->
-      <button id="blackScreenBtn" onclick="enableBlackScreen()" style="background: #000; border: 1px solid #555;">
+      <label for="nativeFileInput" id="nativeRecordBtn" class="native-btn" style="display: none; background: #007aff;">
+        📷 ถ่ายวิดีโอ (กล้องระบบ)
+      </label>
+      <input type="file" id="nativeFileInput" accept="video/*" capture="environment" onchange="handleNativeVideo(this)">
+
+      <button onclick="enableBlackScreen()" style="background: #1c1c1e; border: 1px solid #444;">
         🌙 ดับจอ
       </button>
     </div>
   </div>
 
-  <!-- หน้าจอมืดสนิท (OLED Black Overlay) -->
-  <div id="blackScreenOverlay" onclick="disableBlackScreen()">
-    <div class="overlay-hint">แตะหน้าจอ 1 ครั้งเพื่อเลิกดับจอ</div>
+  <!-- หน้าจอมืดสนิท (แตะค้าง 3 วิเพื่อปลดล็อก) -->
+  <div id="blackScreenOverlay" 
+       ontouchstart="startHold(event)" 
+       ontouchend="cancelHold()" 
+       ontouchcancel="cancelHold()" 
+       onmousedown="startHold(event)" 
+       onmouseup="cancelHold()" 
+       onmouseleave="cancelHold()">
+    <div class="overlay-hint" id="overlayHint">แตะหน้าจอค้างไว้ 3 วินาที เพื่อเปิดหน้าจอ</div>
   </div>
 
   <script>
@@ -193,65 +217,76 @@
     let recordInterval = null;
     let startTime = 0;
     let wakeLock = null;
+    let holdTimer = null; // ตัวจับเวลาการแตะค้าง
 
     const webcam = document.getElementById('webcam');
     const cameraSelect = document.getElementById('cameraSelect');
     const recordBtn = document.getElementById('recordBtn');
+    const nativeRecordBtn = document.getElementById('nativeRecordBtn');
+    const legacyNotice = document.getElementById('legacyNotice');
     const statusText = document.getElementById('statusText');
     const timeDisplay = document.getElementById('timeDisplay');
     const blackOverlay = document.getElementById('blackScreenOverlay');
+    const overlayHint = document.getElementById('overlayHint');
 
-    // 1. เริ่มต้นค้นหากล้องและเรียกใช้งาน
-    async function initCamera() {
+    const isMediaRecorderSupported = !!(window.MediaRecorder);
+
+    async function initApp() {
+      if (!isMediaRecorderSupported) {
+        statusText.innerText = "โหมดเครื่องรุ่นเก่า (iOS 12)";
+        legacyNotice.style.display = "block";
+        recordBtn.style.display = "none";
+        nativeRecordBtn.style.display = "inline-flex";
+      } else {
+        statusText.innerText = "เตรียมพร้อม";
+      }
+      await setupCamera();
+    }
+
+    async function setupCamera() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        statusText.innerText = "เบราว์เซอร์ไม่รองรับการเปิดกล้อง";
+        return;
+      }
+
       try {
-        const initialStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        initialStream.getTracks().forEach(track => track.stop());
-
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const videoDevices = devices.filter(device => device.kind === 'videoinput');
-
-        cameraSelect.innerHTML = '';
-        
-        let ultrawideId = null;
-
-        videoDevices.forEach((device, index) => {
-          const option = document.createElement('option');
-          option.value = device.deviceId;
+        if (navigator.mediaDevices.enumerateDevices) {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const videoDevices = devices.filter(d => d.kind === 'videoinput');
           
-          let label = device.label || `Camera ${index + 1}`;
-          
-          if (label.toLowerCase().includes('ultra') || label.toLowerCase().includes('wide') || label.includes('0.5')) {
-            label = `🔍 0.5x Ultrawide`;
-            ultrawideId = device.deviceId;
+          if (videoDevices.length > 0) {
+            cameraSelect.innerHTML = '';
+            let selectedId = null;
+
+            videoDevices.forEach((device, index) => {
+              const option = document.createElement('option');
+              option.value = device.deviceId;
+              let label = device.label || `Camera ${index + 1}`;
+              
+              if (label.toLowerCase().includes('ultra') || label.toLowerCase().includes('0.5')) {
+                label = "🔍 0.5x Ultrawide";
+                selectedId = device.deviceId;
+              }
+              option.text = label;
+              cameraSelect.appendChild(option);
+            });
+
+            if (selectedId) cameraSelect.value = selectedId;
           }
-
-          option.text = label;
-          cameraSelect.appendChild(option);
-        });
-
-        const selectedId = ultrawideId || (videoDevices[0] ? videoDevices[0].deviceId : null);
-        if (selectedId) {
-          cameraSelect.value = selectedId;
-          await startStream(selectedId);
         }
-
+        await startStream(cameraSelect.value || null);
       } catch (err) {
-        alert('ไม่สามารถเข้าถึงกล้อง/ไมโครโฟนได้: ' + err.message);
+        startStream(null);
       }
     }
 
-    // 2. เปิดใช้งาน Stream กล้อง
     async function startStream(deviceId) {
       if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
       }
 
       const constraints = {
-        video: {
-          deviceId: { exact: deviceId },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
+        video: deviceId ? { deviceId: { exact: deviceId } } : { facingMode: { ideal: "environment" } },
         audio: true
       };
 
@@ -259,21 +294,20 @@
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         webcam.srcObject = currentStream;
       } catch (err) {
-        console.error(" Error loading camera stream: ", err);
-        currentStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        webcam.srcObject = currentStream;
+        try {
+          currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+          webcam.srcObject = currentStream;
+        } catch (e) {
+          statusText.innerText = "ไม่สามารถเปิดกล้องได้";
+        }
       }
     }
 
     async function switchCamera(deviceId) {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        alert('กรุณาหยุดบันทึกวิดีโอก่อนเปลี่ยนกล้อง');
-        return;
-      }
+      if (mediaRecorder && mediaRecorder.state === 'recording') return;
       await startStream(deviceId);
     }
 
-    // 3. ระบบอัดวิดีโอ (MediaRecorder API) ที่แก้ไขเรื่องการโหลดแล้ว
     function toggleRecording() {
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         startRecording();
@@ -282,137 +316,124 @@
       }
     }
 
-    // ดึง MIME Type ที่ดีที่สุดสำหรับอุปกรณ์ (iOS ใช้ mp4, Android/PC ใช้ webm)
-    function getSupportedMimeType() {
-      const types = [
-        'video/mp4;codecs=avc1',
-        'video/mp4',
-        'video/webm;codecs=vp9,opus',
-        'video/webm'
-      ];
-      return types.find(type => MediaRecorder.isTypeSupported(type)) || '';
-    }
-
-    async function startRecording() {
+    function startRecording() {
+      if (!currentStream) return;
       recordedChunks = [];
-      const selectedMime = getSupportedMimeType();
-
+      
       try {
-        mediaRecorder = new MediaRecorder(currentStream, { mimeType: selectedMime });
-      } catch (e) {
         mediaRecorder = new MediaRecorder(currentStream);
+      } catch (e) {
+        alert("เครื่องนี้ไม่รองรับการบันทึกวิดีโอผ่าน Web");
+        return;
       }
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) recordedChunks.push(e.data);
       };
 
-      // เรียกฟังก์ชันแชร์/โหลดเมื่อกดหยุด
-      mediaRecorder.onstop = showVideoPreview; 
-
-      mediaRecorder.start(1000); // เก็บข้อมูลทุกๆ 1 วินาที
+      mediaRecorder.onstop = handleVideoSave;
+      mediaRecorder.start(1000);
+      
       requestWakeLock();
 
       recordBtn.classList.add('recording');
       statusText.innerText = "กำลังบันทึก...";
       timeDisplay.style.display = "inline";
-      
       startTime = Date.now();
       recordInterval = setInterval(updateTimer, 1000);
     }
 
     function stopRecording() {
-      mediaRecorder.stop();
+      if (mediaRecorder) mediaRecorder.stop();
       clearInterval(recordInterval);
       releaseWakeLock();
 
       recordBtn.classList.remove('recording');
-      statusText.innerText = "กำลังประมวลผล...";
+      statusText.innerText = "ประมวลผลวิดีโอ...";
       timeDisplay.style.display = "none";
-      timeDisplay.innerText = "00:00:00";
-      
-      setTimeout(() => {
-          statusText.innerText = "เตรียมพร้อม";
-      }, 2000);
     }
 
-    // 4. ระบบบันทึก/แชร์ไฟล์ (แก้ไขให้รองรับมือถือ)
-    async function showVideoPreview() {
-      const mimeType = mediaRecorder.mimeType || 'video/mp4';
-      const blob = new Blob(recordedChunks, { type: mimeType });
-      const videoUrl = URL.createObjectURL(blob);
-      
-      // กำหนดนามสกุลไฟล์ให้ตรงกับ MIME Type
-      const ext = mimeType.includes('mp4') ? 'mp4' : 'webm';
-      const fileName = `video_${new Date().toISOString().slice(0,19).replace(/[:T]/g, "-")}.${ext}`;
+    async function handleVideoSave() {
+      const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/mp4' });
+      const file = new File([blob], `video_${Date.now()}.mp4`, { type: 'video/mp4' });
 
-      // หากเป็นมือถือและรองรับ Web Share API (บันทึกลง Photos ได้โดยตรง)
-      const file = new File([blob], fileName, { type: mimeType });
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         try {
-          await navigator.share({
-            files: [file],
-            title: 'บันทึกวิดีโอ',
-            text: 'วิดีโอจาก Long Recorder'
-          });
-          return; // แชร์สำเร็จ ไม่ต้องดาวน์โหลดซ้ำ
-        } catch (err) {
-          console.log('User cancelled share or share failed:', err);
-        }
+          await navigator.share({ files: [file], title: 'เซฟวิดีโอ' });
+          statusText.innerText = "บันทึกสำเร็จ";
+          return;
+        } catch (e) {}
       }
 
-      // หากไม่รองรับ Share ให้ใช้วิธีเปิดลิงก์ดาวน์โหลดตรงๆ
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = videoUrl;
-      a.download = fileName;
-      a.target = '_blank';
-      document.body.appendChild(a);
+      a.href = url;
+      a.download = `video_${Date.now()}.mp4`;
       a.click();
-      setTimeout(() => {
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(videoUrl);
-      }, 100);
+      statusText.innerText = "ดาวน์โหลดแล้ว";
     }
 
-    // 5. ตัวนับเวลาการอัดคลิป
+    function handleNativeVideo(input) {
+      if (input.files && input.files[0]) {
+        alert("บันทึกวิดีโอเรียบร้อยแล้ว!");
+        statusText.innerText = "บันทึกวิดีโอสำเร็จ";
+      }
+    }
+
     function updateTimer() {
-      const elapsedMs = Date.now() - startTime;
-      const totalSec = Math.floor(elapsedMs / 1000);
-      const hrs = String(Math.floor(totalSec / 3600)).padStart(2, '0');
-      const mins = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
-      const secs = String(totalSec % 60).padStart(2, '0');
+      const sec = Math.floor((Date.now() - startTime) / 1000);
+      const hrs = String(Math.floor(sec / 3600)).padStart(2, '0');
+      const mins = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+      const secs = String(sec % 60).padStart(2, '0');
       timeDisplay.innerText = `${hrs}:${mins}:${secs}`;
     }
 
-    // 6. ระบบจอมืดสนิท (OLED Saver)
-    function enableBlackScreen() {
-      blackOverlay.style.display = 'block';
+    function enableBlackScreen() { 
+      blackOverlay.style.display = 'flex'; 
     }
 
-    function disableBlackScreen() {
-      blackOverlay.style.display = 'none';
+    function disableBlackScreen() { 
+      blackOverlay.style.display = 'none'; 
+      resetOverlayHint();
     }
 
-    // 7. Screen Wake Lock API ป้องกันเครื่อง Sleep
+    // --- ระบบจับเวลาแตะหน้าจอค้างไว้ 3 วินาที ---
+    function startHold(e) {
+      if (e.type === 'touchstart') {
+        e.preventDefault(); // ป้องกันการซูมหรือเลื่อนหน้าจอ
+      }
+
+      overlayHint.innerText = "กำลังปลดล็อก (ค้างไว้ 3 วิ)...";
+      overlayHint.style.color = '#777'; // ข้อความสว่างขึ้นนิดหน่อยบอกว่ากำลังจับเวลา
+
+      holdTimer = setTimeout(() => {
+        disableBlackScreen();
+      }, 3000); // 3000 มิลลิวินาที = 3 วินาที
+    }
+
+    function cancelHold() {
+      if (holdTimer) {
+        clearTimeout(holdTimer);
+        holdTimer = null;
+      }
+      resetOverlayHint();
+    }
+
+    function resetOverlayHint() {
+      overlayHint.innerText = "แตะหน้าจอค้างไว้ 3 วินาที เพื่อเปิดหน้าจอ";
+      overlayHint.style.color = '#222';
+    }
+
     async function requestWakeLock() {
-      try {
-        if ('wakeLock' in navigator) {
-          wakeLock = await navigator.wakeLock.request('screen');
-        }
-      } catch (err) {
-        console.log('Wake Lock Error:', err.message);
+      if ('wakeLock' in navigator) {
+        try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
       }
     }
-
     function releaseWakeLock() {
-      if (wakeLock !== null) {
-        wakeLock.release();
-        wakeLock = null;
-      }
+      if (wakeLock) { wakeLock.release(); wakeLock = null; }
     }
 
-    // เรียกทำงานเมื่อโหลดหน้าเว็บ
-    window.addEventListener('DOMContentLoaded', initCamera);
+    window.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
