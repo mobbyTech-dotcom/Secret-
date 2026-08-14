@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Front Camera Long Video Recorder</title>
+  <title>Front Camera Recorder</title>
   <style>
     * {
       box-sizing: border-box;
@@ -68,17 +68,18 @@
 
     .btn-group {
       display: flex;
-      gap: 15px;
+      gap: 12px;
       width: 100%;
       justify-content: center;
       align-items: center;
+      flex-wrap: wrap;
     }
 
     button, .native-btn {
       background: #2c2c2e;
       color: #fff;
       border: none;
-      padding: 12px 20px;
+      padding: 12px 18px;
       border-radius: 25px;
       font-size: 14px;
       font-weight: 600;
@@ -117,6 +118,16 @@
       border-radius: 4px;
     }
 
+    select {
+      background: #2c2c2e;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 10px 12px;
+      border-radius: 12px;
+      font-size: 13px;
+      max-width: 150px;
+    }
+
     #nativeFileInput {
       display: none;
     }
@@ -148,7 +159,7 @@
     }
 
     .overlay-hint {
-      color: #222; /* สีมืดสลัว */
+      color: #222;
       font-size: 13px;
       text-align: center;
       pointer-events: none;
@@ -168,15 +179,18 @@
     </div>
 
     <div class="status-bar">
-      <span id="statusText">กำลังเตรียมกล้องหน้า...</span>
+      <span id="statusText">กำลังค้นหากล้องหน้า...</span>
       <span id="timeDisplay" class="recording-time">00:00:00</span>
     </div>
 
     <div class="btn-group">
-      <!-- ปุ่มอัดหลัก (สำหรับเบราว์เซอร์ปกติ) -->
+      <!-- เมนูเลือกกล้อง (ระบบจะคัดแยกกล้องหน้ามาให้เลือก) -->
+      <select id="cameraSelect" onchange="switchCamera(this.value)"></select>
+
+      <!-- ปุ่มอัดหลัก -->
       <button id="recordBtn" onclick="toggleRecording()"></button>
 
-      <!-- ปุ่มถ่ายด้วยกล้องหน้าของระบบ (สำหรับ iOS 12 / เครื่องรุ่นเก่า) -->
+      <!-- ปุ่มถ่ายด้วยกล้องหน้าของระบบ (สำหรับเครื่องรุ่นเก่า) -->
       <label for="nativeFileInput" id="nativeRecordBtn" class="native-btn" style="display: none; background: #007aff;">
         📷 ถ่ายวิดีโอ (กล้องหน้า)
       </label>
@@ -210,6 +224,7 @@
     let holdTimer = null;
 
     const webcam = document.getElementById('webcam');
+    const cameraSelect = document.getElementById('cameraSelect');
     const recordBtn = document.getElementById('recordBtn');
     const nativeRecordBtn = document.getElementById('nativeRecordBtn');
     const legacyNotice = document.getElementById('legacyNotice');
@@ -227,46 +242,98 @@
         recordBtn.style.display = "none";
         nativeRecordBtn.style.display = "inline-flex";
       } else {
-        statusText.innerText = "กล้องหน้าพร้อมใช้งาน";
+        statusText.innerText = "เตรียมพร้อมกล้องหน้า...";
       }
-      await startFrontCamera();
+      await setupFrontCamera();
     }
 
-    // 1. เรียกใช้งานกล้องหน้าเท่านั้น (facingMode: "user")
-    async function startFrontCamera() {
+    // เจาะจงค้นหาและเปิดกล้องหน้า (Front Camera)
+    async function setupFrontCamera() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        statusText.innerText = "เบราว์เซอร์ไม่รองรับการเปิดกล้อง";
+        statusText.innerText = "เบราว์เซอร์ไม่รองรับกล้อง";
         return;
       }
 
+      try {
+        // 1. ขอสิทธิ์เปิดกล้องเบื้องต้นก่อน เพื่อดึงชื่ออุปกรณ์จริงออกมา
+        const tempStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+        tempStream.getTracks().forEach(track => track.stop());
+
+        // 2. ค้นหารายการกล้องทั้งหมดในเครื่อง
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+
+        cameraSelect.innerHTML = '';
+        let targetDeviceId = null;
+
+        if (videoDevices.length > 0) {
+          videoDevices.forEach((device, index) => {
+            const label = device.label.toLowerCase();
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            
+            // สำหรับ iOS กล้องหน้าจะอยู่อันดับแรก (index 0) เสมอ หรือมีคำว่า front/user/selfie
+            const isFront = label.includes('front') || label.includes('user') || label.includes('facing') || label.includes('selfie') || label.includes('หน้า') || index === 0;
+
+            option.text = isFront ? `🤳 กล้องหน้า (${index + 1})` : `📷 กล้องอื่นๆ (${index + 1})`;
+            cameraSelect.appendChild(option);
+
+            if (isFront && !targetDeviceId) {
+              targetDeviceId = device.deviceId;
+            }
+          });
+
+          if (targetDeviceId) {
+            cameraSelect.value = targetDeviceId;
+          }
+        }
+
+        await startStreamByDeviceId(targetDeviceId);
+
+      } catch (err) {
+        await startStreamFallback();
+      }
+    }
+
+    async function startStreamByDeviceId(deviceId) {
       if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
       }
 
       const constraints = {
-        video: {
-          facingMode: "user", // ล็อกกล้องหน้า
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
+        video: deviceId 
+          ? { deviceId: { exact: deviceId } } 
+          : { facingMode: { exact: "user" } },
         audio: true
       };
 
       try {
         currentStream = await navigator.mediaDevices.getUserMedia(constraints);
         webcam.srcObject = currentStream;
+        statusText.innerText = "กล้องหน้าพร้อมใช้งาน";
       } catch (err) {
-        // Fallback หากเปิดพร้อมความละเอียดสูงหรือเสียงไม่ได้
-        try {
-          currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
-          webcam.srcObject = currentStream;
-        } catch (e) {
-          statusText.innerText = "ไม่สามารถเปิดกล้องหน้าได้";
-        }
+        await startStreamFallback();
       }
     }
 
-    // 2. ระบบอัดวิดีโอ
+    async function startStreamFallback() {
+      try {
+        currentStream = await navigator.mediaDevices.getUserMedia({ 
+          video: { facingMode: "user" }, 
+          audio: true 
+        });
+        webcam.srcObject = currentStream;
+        statusText.innerText = "กล้องหน้าพร้อมใช้งาน";
+      } catch (e) {
+        statusText.innerText = "ไม่สามารถเปิดกล้องหน้าได้";
+      }
+    }
+
+    async function switchCamera(deviceId) {
+      if (mediaRecorder && mediaRecorder.state === 'recording') return;
+      await startStreamByDeviceId(deviceId);
+    }
+
     function toggleRecording() {
       if (!mediaRecorder || mediaRecorder.state === 'inactive') {
         startRecording();
@@ -312,7 +379,6 @@
       timeDisplay.style.display = "none";
     }
 
-    // 3. เซฟไฟล์ลงเครื่อง / เซฟลง Photos
     async function handleVideoSave() {
       const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'video/mp4' });
       const file = new File([blob], `front_video_${Date.now()}.mp4`, { type: 'video/mp4' });
@@ -348,7 +414,6 @@
       timeDisplay.innerText = `${hrs}:${mins}:${secs}`;
     }
 
-    // 4. โหมดจอมืดสนิท & ระบบแตะค้าง 3 วินาที
     function enableBlackScreen() { 
       blackOverlay.style.display = 'flex'; 
     }
@@ -384,7 +449,6 @@
       overlayHint.style.color = '#222';
     }
 
-    // 5. ป้องกันเครื่อง Sleep
     async function requestWakeLock() {
       if ('wakeLock' in navigator) {
         try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
